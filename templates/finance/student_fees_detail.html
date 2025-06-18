@@ -1,0 +1,179 @@
+<!-- Create this file as: templates/finance/student_fees_detail.html -->
+
+{% extends "base.html" %}
+
+{% block title %}{{ student.full_name }} - Fee Details - LMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">
+            <i class="fas fa-money-bill-wave"></i>
+            Fee Details - {{ student.full_name }}
+        </h1>
+        <div class="header-actions">
+            <a href="{{ url_for('view_student', id=student.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Back to Student
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="fee-details-container">
+    <div class="student-info-card">
+        <h3>Student Information</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="label">Student ID:</span>
+                <span class="value">{{ student.student_id }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Grade:</span>
+                <span class="value">{{ student.grade or 'Not specified' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Department:</span>
+                <span class="value">{{ student.department.name if student.department else 'Not assigned' }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="fees-table-card">
+        <h3>Fee Records</h3>
+        {% if fees %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fee Type</th>
+                        <th>Amount</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Paid Amount</th>
+                        <th>Payment Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fee in fees %}
+                    <tr>
+                        <td>{{ fee.fee_type|title }}</td>
+                        <td>₹{{ "%.2f"|format(fee.amount) }}</td>
+                        <td>{{ fee.due_date.strftime('%d %b, %Y') }}</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if fee.status == 'paid' else 'warning' if fee.status == 'pending' else 'danger' }}">
+                                {{ fee.status|title }}
+                            </span>
+                        </td>
+                        <td>₹{{ "%.2f"|format(fee.paid_amount) }}</td>
+                        <td>{{ fee.payment_date.strftime('%d %b, %Y') if fee.payment_date else '-' }}</td>
+                        <td>
+                            {% if fee.status == 'pending' %}
+                            <button class="btn btn-sm btn-success" onclick="recordPayment('{{ fee.id }}')">
+                                <i class="fas fa-credit-card"></i>
+                                Record Payment
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-receipt"></i>
+            <h4>No Fee Records</h4>
+            <p>No fee records found for this student.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function recordPayment(feeId) {
+    // Simple payment recording
+    const amount = prompt('Enter payment amount:');
+    if (amount && !isNaN(amount)) {
+        fetch(`/finance/fees/${feeId}/pay`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `paid_amount=${amount}&payment_method=cash&payment_date=${new Date().toISOString().split('T')[0]}`
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Error recording payment');
+            }
+        });
+    }
+}
+</script>
+
+<style>
+.fee-details-container {
+    padding: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.student-info-card, .fees-table-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.label {
+    font-weight: 600;
+    color: #666;
+}
+
+.value {
+    color: #333;
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge-success { background: #d4edda; color: #155724; }
+.badge-warning { background: #fff3cd; color: #856404; }
+.badge-danger { background: #f8d7da; color: #721c24; }
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: #ccc;
+}
+</style>
+{% endblock %}

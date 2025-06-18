@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Tutor Dashboard - LMS{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Tutor Dashboard</h1>
+        <p class="dashboard-subtitle">Welcome, {{ current_user.full_name or current_user.username }}!</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon primary">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.total_hours }}</div>
+                <div class="stat-label">Total Hours Taught</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.active_students }}</div>
+                <div class="stat-label">Active Students</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.classes_today }}</div>
+                <div class="stat-label">Classes Today</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon info">
+                <i class="fas fa-chalkboard"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.completed_classes }}</div>
+                <div class="stat-label">Classes Completed</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-calendar-day"></i>
+                    Today's Schedule
+                </h2>
+            </div>
+            <div class="card-body">
+                <div id="todayClasses">
+                    <div class="loading">Loading today's classes...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Teaching Summary
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="overview-stats">
+                    <div class="overview-item">
+                        <span class="overview-label">Total Enrollments</span>
+                        <span class="overview-value">{{ stats.total_enrollments }}</span>
+                    </div>
+                    <div class="overview-item">
+                        <span class="overview-label">Hours This Week</span>
+                        <span class="overview-value">{{ stats.total_hours }}</span>
+                    </div>
+                    <div class="overview-item">
+                        <span class="overview-label">Pending Salary</span>
+                        <span class="overview-value">₹{{ stats.pending_salary }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="actions-grid">
+            <a href="{{ url_for('classes') }}" class="action-btn">
+                <i class="fas fa-chalkboard"></i>
+                <span>My Classes</span>
+            </a>
+            <a href="{{ url_for('schedule') }}" class="action-btn">
+                <i class="fas fa-calendar"></i>
+                <span>View Schedule</span>
+            </a>
+            <a href="{{ url_for('profile') }}" class="action-btn">
+                <i class="fas fa-user-circle"></i>
+                <span>My Profile</span>
+            </a>
+            <a href="#" class="action-btn" onclick="alert('Feature coming soon!')">
+                <i class="fas fa-upload"></i>
+                <span>Upload Materials</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load today's classes for tutor
+document.addEventListener('DOMContentLoaded', function() {
+    loadTodayClasses();
+});
+
+function loadTodayClasses() {
+    fetch('/tutor/today-classes')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('todayClasses');
+            
+            if (data.length === 0) {
+                container.innerHTML = '<p class="no-classes">No classes scheduled for today</p>';
+                return;
+            }
+            
+            let html = '<div class="classes-list">';
+            data.forEach(cls => {
+                html += `
+                    <div class="class-item">
+                        <div class="class-time">${cls.time}</div>
+                        <div class="class-details">
+                            <div class="class-subject">${cls.subject}</div>
+                            <div class="class-student">${cls.student}</div>
+                        </div>
+                        <div class="class-actions">
+                            ${cls.meeting_link ? `<a href="${cls.meeting_link}" target="_blank" class="btn btn-sm btn-success">Join</a>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            container.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error loading classes:', error);
+            document.getElementById('todayClasses').innerHTML = '<p class="error">Error loading classes</p>';
+        });
+}
+</script>
+
+<style>
+.classes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.class-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.class-time {
+    font-weight: 600;
+    color: var(--primary-color);
+    min-width: 60px;
+}
+
+.class-details {
+    flex: 1;
+}
+
+.class-subject {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.class-student {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.no-classes, .error {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 20px;
+}
+
+.loading {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 20px;
+}
+</style>
+{% endblock %}

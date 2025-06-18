@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Coordinator Dashboard - LMS{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Coordinator Dashboard</h1>
+        <p class="dashboard-subtitle">Department: {{ stats.department_name }}</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon primary">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.total_tutors }}</div>
+                <div class="stat-label">Department Tutors</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.total_students }}</div>
+                <div class="stat-label">Enrolled Students</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.classes_today }}</div>
+                <div class="stat-label">Classes Today</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon info">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.active_enrollments }}</div>
+                <div class="stat-label">Active Enrollments</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-chart-line"></i>
+                    Department Overview
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="overview-stats">
+                    <div class="overview-item">
+                        <span class="overview-label">Department</span>
+                        <span class="overview-value">{{ stats.department_name }}</span>
+                    </div>
+                    <div class="overview-item">
+                        <span class="overview-label">Your Role</span>
+                        <span class="overview-value">{{ current_user.role|title }}</span>
+                    </div>
+                    <div class="overview-item">
+                        <span class="overview-label">Pending Files</span>
+                        <span class="overview-value">{{ stats.pending_files }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-tasks"></i>
+                    Coordinator Responsibilities
+                </h2>
+            </div>
+            <div class="card-body">
+                <ul class="responsibility-list">
+                    <li><i class="fas fa-check-circle"></i> Manage department tutors</li>
+                    <li><i class="fas fa-check-circle"></i> Oversee student enrollments</li>
+                    <li><i class="fas fa-check-circle"></i> Monitor class schedules</li>
+                    <li><i class="fas fa-check-circle"></i> Review tutor performance</li>
+                    <li><i class="fas fa-check-circle"></i> Handle escalations</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="actions-grid">
+            <a href="{{ url_for('users') }}?role=tutor" class="action-btn">
+                <i class="fas fa-chalkboard-teacher"></i>
+                <span>Manage Tutors</span>
+            </a>
+            <a href="{{ url_for('students') }}" class="action-btn">
+                <i class="fas fa-user-graduate"></i>
+                <span>View Students</span>
+            </a>
+            <a href="{{ url_for('create_student') }}" class="action-btn">
+                <i class="fas fa-user-plus"></i>
+                <span>Add Student</span>
+            </a>
+            <a href="{{ url_for('schedule') }}" class="action-btn">
+                <i class="fas fa-calendar"></i>
+                <span>View Schedule</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

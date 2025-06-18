@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+
+{% block title %}My Classes - LMS{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">
+            <i class="fas fa-chalkboard-teacher"></i> My Classes
+        </h1>
+        <p class="dashboard-subtitle">Manage your teaching schedule and class activities</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+        {% set completed_classes = classes|selectattr('status', 'equalto', 'completed')|list %}
+        {% set scheduled_classes = classes|selectattr('status', 'equalto', 'scheduled')|list %}
+        {% set cancelled_classes = classes|selectattr('status', 'equalto', 'cancelled')|list %}
+        
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ completed_classes|length }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon info">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ scheduled_classes|length }}</div>
+                <div class="stat-label">Scheduled</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon danger">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ cancelled_classes|length }}</div>
+                <div class="stat-label">Cancelled</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="fas fa-list"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ classes|length }}</div>
+                <div class="stat-label">Total Classes</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions-bar">
+        <a href="{{ url_for('schedule') }}" class="btn btn-primary">
+            <i class="fas fa-calendar"></i> Calendar View
+        </a>
+        <a href="{{ url_for('class_recordings') }}" class="btn btn-secondary">
+            <i class="fas fa-video"></i> My Recordings
+        </a>
+        <a href="{{ url_for('my_attendance') }}" class="btn btn-info">
+            <i class="fas fa-clipboard-check"></i> My Attendance
+        </a>
+        <a href="{{ url_for('my_payroll') }}" class="btn btn-success">
+            <i class="fas fa-money-bill-wave"></i> Payroll
+        </a>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fas fa-filter"></i>
+                Filter Classes
+            </h2>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="filter-form">
+                <div class="form-group">
+                    <label for="status">Status:</label>
+                    <select id="status" name="status" class="form-control">
+                        <option value="">All Status</option>
+                        <option value="scheduled" {% if request.args.get('status') == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                        <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="cancelled" {% if request.args.get('status') == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="date_from">From Date:</label>
+                    <input type="date" id="date_from" name="date_from" value="{{ request.args.get('date_from', '') }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="date_to">To Date:</label>
+                    <input type="date" id="date_to" name="date_to" value="{{ request.args.get('date_to', '') }}" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Filter
+                </button>
+                <a href="{{ url_for('my_classes') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Classes List -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fas fa-list"></i>
+                My Class Schedule
+            </h2>
+            <div class="card-actions">
+                <button class="btn btn-sm btn-primary" onclick="exportClasses()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if classes %}
+                <div class="classes-grid">
+                    {% for class in classes %}
+                    <div class="class-card">
+                        <div class="class-header">
+                            <div class="class-title">
+                                <h3>{{ class.subject or 'General Class' }}</h3>
+                                <span class="status-badge {{ class.status or 'scheduled' }}">
+                                    {{ (class.status or 'scheduled')|title }}
+                                </span>
+                            </div>
+                            <div class="class-date">
+                                {{ class.class_date.strftime('%b %d, %Y') if class.class_date else 'No Date' }}
+                            </div>
+                        </div>
+                        
+                        <div class="class-body">
+                            <div class="class-details">
+                                {% if class.enrollment and class.enrollment.student %}
+                                <div class="detail-item">
+                                    <i class="fas fa-user-graduate"></i>
+                                    <span>{{ class.enrollment.student.full_name or 'Unknown Student' }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="detail-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>
+                                        {% if class.start_time and class.end_time %}
+                                            {{ class.start_time.strftime('%I:%M %p') }} - {{ class.end_time.strftime('%I:%M %p') }}
+                                        {% else %}
+                                            Time Not Set
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                
+                                {% if class.meeting_link %}
+                                <div class="detail-item">
+                                    <i class="fas fa-video"></i>
+                                    <span>Meeting Link Available</span>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="detail-item">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>
+                                        {% if class.status == 'completed' %}
+                                            Class Completed
+                                        {% elif class.status == 'cancelled' %}
+                                            Class Cancelled
+                                        {% else %}
+                                            Upcoming Class
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="class-footer">
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-info" onclick="viewClass('{{ class.id }}')">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                
+                                {% if class.meeting_link %}
+                                <a href="{{ class.meeting_link }}" target="_blank" class="btn btn-sm btn-success">
+                                    <i class="fas fa-video"></i> Join
+                                </a>
+                                {% endif %}
+                                
+                                {% if class.status == 'scheduled' %}
+                                <button class="btn btn-sm btn-warning" onclick="markCompleted('{{ class.id }}')">
+                                    <i class="fas fa-check"></i> Complete
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-secondary" onclick="editClass('{{ class.id }}')">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Pagination would go here if needed -->
+                
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <h3>No Classes Found</h3>
+                    <p>You don't have any classes scheduled yet.</p>
+                    <a href="{{ url_for('schedule') }}" class="btn btn-primary">
+                        <i class="fas fa-calendar"></i> View Schedule
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.quick-actions-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.filter-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+
+.classes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 24px;
+}
+
+.class-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.class-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.class-header {
+    background: var(--light-color);
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.class-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.class-title h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.class-date {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.scheduled {
+    background: rgba(33, 150, 243, 0.1);
+    color: #2196f3;
+}
+
+.status-badge.completed {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
+}
+
+.status-badge.cancelled {
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+}
+
+.class-body {
+    padding: 20px;
+}
+
+.class-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.detail-item i {
+    width: 16px;
+    color: var(--primary-color);
+}
+
+.class-footer {
+    padding: 16px 20px;
+    background: var(--light-color);
+    border-top: 1px solid var(--border-color);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    .quick-actions-bar {
+        flex-direction: column;
+    }
+    
+    .filter-form {
+        grid-template-columns: 1fr;
+    }
+    
+    .classes-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .class-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .action-buttons {
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+function viewClass(classId) {
+    window.location.href = `/classes/${classId}`;
+}
+
+function editClass(classId) {
+    window.location.href = `/classes/${classId}/edit`;
+}
+
+function markCompleted(classId) {
+    if (confirm('Mark this class as completed?')) {
+        fetch(`/classes/${classId}/complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Class marked as completed!');
+                location.reload();
+            } else {
+                alert('Error completing class: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error completing class: ' + error.message);
+        });
+    }
+}
+
+function exportClasses() {
+    const params = new URLSearchParams(window.location.search);
+    window.location.href = `/tutor/my-classes/export?${params}`;
+}
+
+// Auto-refresh every 5 minutes
+setInterval(() => {
+    if (!document.hidden) {
+        location.reload();
+    }
+}, 300000);
+</script>
+{% endblock %}

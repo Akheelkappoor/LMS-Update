@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule - LMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">
+            <i class="fas fa-calendar"></i>
+            Schedule
+        </h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="previousWeek()">
+                <i class="fas fa-chevron-left"></i>
+                Previous
+            </button>
+            <button class="btn btn-primary" onclick="currentWeek()">
+                Today
+            </button>
+            <button class="btn btn-secondary" onclick="nextWeek()">
+                Next
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="schedule-container">
+    <div class="week-header" id="weekHeader">
+        <h2 id="weekTitle">Loading...</h2>
+    </div>
+    
+    <div class="schedule-grid" id="scheduleGrid">
+        <!-- Schedule will be loaded here -->
+    </div>
+</div>
+
+<script>
+let currentWeekStart = new Date();
+currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1); // Start from Monday
+
+function loadSchedule() {
+    const weekStart = currentWeekStart.toISOString().split('T')[0];
+    
+    fetch(`/api/schedule/week?week_start=${weekStart}`)
+        .then(response => response.json())
+        .then(data => {
+            renderSchedule(data);
+            updateWeekTitle();
+        });
+}
+
+function renderSchedule(classes) {
+    const grid = document.getElementById('scheduleGrid');
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    let html = '<div class="time-column"><div class="time-header">Time</div>';
+    
+    // Generate time slots (8 AM to 8 PM)
+    for (let hour = 8; hour <= 20; hour++) {
+        html += `<div class="time-slot">${hour}:00</div>`;
+    }
+    html += '</div>';
+    
+    // Generate day columns
+    days.forEach((day, index) => {
+        const dayDate = new Date(currentWeekStart);
+        dayDate.setDate(dayDate.getDate() + index);
+        
+        html += `<div class="day-column">
+            <div class="day-header">
+                <div class="day-name">${day}</div>
+                <div class="day-date">${dayDate.getDate()}</div>
+            </div>`;
+        
+        // Add time slots for this day
+        for (let hour = 8; hour <= 20; hour++) {
+            const dayClasses = classes.filter(cls => {
+                const classDate = new Date(cls.start);
+                return classDate.toDateString() === dayDate.toDateString() && 
+                       classDate.getHours() === hour;
+            });
+            
+            html += '<div class="day-time-slot">';
+            dayClasses.forEach(cls => {
+                html += `<div class="class-item" data-class-id="${cls.id}">
+                    <div class="class-subject">${cls.subject}</div>
+                    <div class="class-student">${cls.student}</div>
+                    <div class="class-time">${new Date(cls.start).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}</div>
+                </div>`;
+            });
+            html += '</div>';
+        }
+        
+        html += '</div>';
+    });
+    
+    grid.innerHTML = html;
+}
+
+function updateWeekTitle() {
+    const weekEnd = new Date(currentWeekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    
+    const title = `${currentWeekStart.toLocaleDateString('en-US', {month: 'long', day: 'numeric'})} - ${weekEnd.toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}`;
+    document.getElementById('weekTitle').textContent = title;
+}
+
+function previousWeek() {
+    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+    loadSchedule();
+}
+
+function nextWeek() {
+    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+    loadSchedule();
+}
+
+function currentWeek() {
+    currentWeekStart = new Date();
+    currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1);
+    loadSchedule();
+}
+
+// Load schedule on page load
+document.addEventListener('DOMContentLoaded', loadSchedule);
+</script>
+
+<style>
+.schedule-container {
+    padding: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.week-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr);
+    gap: 1px;
+    background: #f0f0f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.time-column, .day-column {
+    background: white;
+}
+
+.time-header, .day-header {
+    padding: 16px 8px;
+    background: #f8f9fa;
+    font-weight: 600;
+    text-align: center;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.day-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.day-name {
+    font-size: 14px;
+    color: #333;
+}
+
+.day-date {
+    font-size: 18px;
+    color: #F1A150;
+}
+
+.time-slot, .day-time-slot {
+    height: 60px;
+    padding: 4px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #666;
+}
+
+.day-time-slot {
+    position: relative;
+    overflow: hidden;
+}
+
+.class-item {
+    background: linear-gradient(135deg, #F1A150, #C86706);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    width: 100%;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.class-item:hover {
+    transform: scale(1.05);
+}
+
+.class-subject {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.class-student, .class-time {
+    font-size: 9px;
+    opacity: 0.9;
+}
+</style>
+{% endblock %}

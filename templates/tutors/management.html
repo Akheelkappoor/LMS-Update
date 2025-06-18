@@ -1,0 +1,445 @@
+
+{% extends "base.html" %}
+
+{% block title %}Tutor Management - LMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">
+            <i class="fas fa-chalkboard-teacher"></i>
+            Tutor Management
+        </h1>
+        <div class="header-actions">
+            <a href="{{ url_for('register_tutor') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Register New Tutor
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="tutor-management-container">
+    <!-- Filters -->
+    <div class="filters-card">
+        <h3>Filter Tutors</h3>
+        <form method="GET" class="filters-form">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Department</label>
+                    <select name="department" class="form-control">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if request.args.get('department') == dept.id|string %}selected{% endif %}>
+                            {{ dept.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Subject</label>
+                    <select name="subject" class="form-control">
+                        <option value="">All Subjects</option>
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Physics">Physics</option>
+                        <option value="Chemistry">Chemistry</option>
+                        <option value="Biology">Biology</option>
+                        <option value="English">English</option>
+                        <option value="Computer Science">Computer Science</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Availability</label>
+                    <select name="availability" class="form-control">
+                        <option value="">All Status</option>
+                        <option value="available">Available</option>
+                        <option value="busy">Busy</option>
+                        <option value="on_leave">On Leave</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Experience</label>
+                    <select name="experience" class="form-control">
+                        <option value="">All Experience</option>
+                        <option value="0-2">0-2 years</option>
+                        <option value="3-5">3-5 years</option>
+                        <option value="5+">5+ years</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tutors Grid -->
+    <div class="tutors-grid">
+        {% for tutor in tutors %}
+        <div class="tutor-card">
+            <div class="tutor-header">
+                <div class="tutor-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="tutor-info">
+                    <h4>{{ tutor.user.full_name }}</h4>
+                    <p class="employee-id">{{ tutor.employee_id }}</p>
+                    <div class="status-badges">
+                        <span class="badge badge-{{ 'success' if tutor.availability_status == 'available' else 'warning' if tutor.availability_status == 'busy' else 'danger' }}">
+                            {{ tutor.availability_status|title }}
+                        </span>
+                        {% if tutor.is_active_for_new_students %}
+                        <span class="badge badge-info">Accepting New Students</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tutor-details">
+                <div class="detail-row">
+                    <span class="label">Qualification:</span>
+                    <span class="value">{{ tutor.qualification or 'Not specified' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Experience:</span>
+                    <span class="value">{{ tutor.experience_years or 0 }} years</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Rate:</span>
+                    <span class="value">₹{{ tutor.hourly_rate or 0 }}/hour</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Students Taught:</span>
+                    <span class="value">{{ tutor.total_students_taught }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Rating:</span>
+                    <span class="value">
+                        {% if tutor.average_rating %}
+                        <span class="rating">
+                            {% for i in range(5) %}
+                            <i class="fas fa-star {% if i < tutor.average_rating %}active{% endif %}"></i>
+                            {% endfor %}
+                            {{ "%.1f"|format(tutor.average_rating) }}
+                        </span>
+                        {% else %}
+                        Not rated yet
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="specialization-tags">
+                {% for subject in tutor.get_specialization()[:3] %}
+                <span class="subject-tag">{{ subject }}</span>
+                {% endfor %}
+                {% if tutor.get_specialization()|length > 3 %}
+                <span class="subject-tag more">+{{ tutor.get_specialization()|length - 3 }} more</span>
+                {% endif %}
+            </div>
+            
+            <div class="tutor-actions">
+                <a href="{{ url_for('tutor_availability', id=tutor.id) }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-calendar"></i>
+                    Availability
+                </a>
+                <a href="/tutors/{{ tutor.id }}/profile" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-eye"></i>
+                    View Profile
+                </a>
+                <button class="btn btn-sm btn-success" onclick="assignStudent('{{ tutor.id }}')">
+                    <i class="fas fa-user-plus"></i>
+                    Assign Student
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if not tutors %}
+    <div class="empty-state">
+        <i class="fas fa-chalkboard-teacher"></i>
+        <h3>No Tutors Found</h3>
+        <p>No tutors match your current filters.</p>
+        <a href="{{ url_for('register_tutor') }}" class="btn btn-primary">
+            Register First Tutor
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick Assign Modal -->
+<div class="modal fade" id="assignStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Student to Tutor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignForm">
+                    <div class="form-group">
+                        <label>Search Student</label>
+                        <input type="text" id="studentSearch" class="form-control" placeholder="Type student name...">
+                        <div id="studentResults" class="search-results"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <select id="assignSubject" class="form-control">
+                            <option value="">Select Subject</option>
+                            <option value="Mathematics">Mathematics</option>
+                            <option value="Physics">Physics</option>
+                            <option value="Chemistry">Chemistry</option>
+                            <option value="Biology">Biology</option>
+                            <option value="English">English</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmAssignment()">Assign</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedTutorId = null;
+let selectedStudentId = null;
+
+function assignStudent(tutorId) {
+    selectedTutorId = tutorId;
+    const modal = new bootstrap.Modal(document.getElementById('assignStudentModal'));
+    modal.show();
+}
+
+// Student search functionality
+document.getElementById('studentSearch').addEventListener('input', function(e) {
+    const searchTerm = e.target.value;
+    if (searchTerm.length >= 2) {
+        fetch(`/api/students/search?q=${searchTerm}`)
+            .then(response => response.json())
+            .then(students => {
+                const resultsDiv = document.getElementById('studentResults');
+                resultsDiv.innerHTML = '';
+                
+                students.forEach(student => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.innerHTML = `
+                        <div class="student-info">
+                            <strong>${student.name}</strong>
+                            <small>${student.student_id} - ${student.grade || 'No grade'}</small>
+                        </div>
+                    `;
+                    div.onclick = () => selectStudent(student.id, student.name);
+                    resultsDiv.appendChild(div);
+                });
+            });
+    }
+});
+
+function selectStudent(studentId, studentName) {
+    selectedStudentId = studentId;
+    document.getElementById('studentSearch').value = studentName;
+    document.getElementById('studentResults').innerHTML = '';
+}
+
+function confirmAssignment() {
+    if (!selectedTutorId || !selectedStudentId) {
+        alert('Please select both tutor and student');
+        return;
+    }
+    
+    const subject = document.getElementById('assignSubject').value;
+    if (!subject) {
+        alert('Please select a subject');
+        return;
+    }
+    
+    // Redirect to enrollment page with pre-selected tutor
+    window.location.href = `/students/${selectedStudentId}/enroll?tutor_id=${selectedTutorId}&subject=${subject}`;
+}
+</script>
+
+<style>
+.tutor-management-container {
+    padding: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.filters-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.filters-form .filter-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+
+.tutors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 24px;
+}
+
+.tutor-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.tutor-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.tutor-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.tutor-avatar i {
+    font-size: 48px;
+    color: #F1A150;
+}
+
+.tutor-info h4 {
+    margin: 0 0 4px 0;
+    color: #333;
+}
+
+.employee-id {
+    color: #666;
+    font-size: 14px;
+    margin: 0 0 8px 0;
+}
+
+.status-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge-success { background: #d4edda; color: #155724; }
+.badge-warning { background: #fff3cd; color: #856404; }
+.badge-danger { background: #f8d7da; color: #721c24; }
+.badge-info { background: #d1ecf1; color: #0c5460; }
+
+.tutor-details {
+    margin-bottom: 16px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.detail-row .label {
+    color: #666;
+    font-weight: 500;
+}
+
+.detail-row .value {
+    color: #333;
+}
+
+.rating .fa-star {
+    color: #ddd;
+    font-size: 14px;
+}
+
+.rating .fa-star.active {
+    color: #ffc107;
+}
+
+.specialization-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.subject-tag {
+    background: #f8f9fa;
+    color: #666;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    border: 1px solid #e9ecef;
+}
+
+.subject-tag.more {
+    background: #F1A150;
+    color: white;
+    border-color: #F1A150;
+}
+
+.tutor-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.search-results {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+
+.search-result-item {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.search-result-item:hover {
+    background: #f8f9fa;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.empty-state i {
+    font-size: 64px;
+    color: #ddd;
+    margin-bottom: 20px;
+}
+</style>
+{% endblock %>

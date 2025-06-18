@@ -1,0 +1,144 @@
+reports_template = '''
+{% extends "base.html" %}
+
+{% block title %}Reports - LMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">
+            <i class="fas fa-chart-bar"></i>
+            Reports & Analytics
+        </h1>
+    </div>
+</div>
+
+<div class="reports-container">
+    <div class="reports-grid">
+        {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
+        <div class="report-card">
+            <div class="report-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="report-content">
+                <h3>Student Reports</h3>
+                <p>Enrollment, attendance, and progress reports</p>
+                <a href="{{ url_for('students') }}" class="btn btn-primary">
+                    View Students
+                </a>
+            </div>
+        </div>
+        
+        <div class="report-card">
+            <div class="report-icon">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="report-content">
+                <h3>Tutor Performance</h3>
+                <p>Teaching hours, student feedback, and ratings</p>
+                <a href="{{ url_for('users') }}?role=tutor" class="btn btn-primary">
+                    View Tutors
+                </a>
+            </div>
+        </div>
+        
+        <div class="report-card">
+            <div class="report-icon">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="report-content">
+                <h3>Attendance Reports</h3>
+                <p>Class attendance and punctuality analytics</p>
+                <a href="{{ url_for('classes') }}" class="btn btn-primary">
+                    View Classes
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if current_user.role == 'tutor' %}
+        <div class="report-card">
+            <div class="report-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="report-content">
+                <h3>My Performance</h3>
+                <p>Your teaching statistics and student progress</p>
+                <a href="{{ url_for('classes') }}" class="btn btn-primary">
+                    View My Classes
+                </a>
+            </div>
+        </div>
+        
+        <div class="report-card">
+            <div class="report-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="report-content">
+                <h3>Time Tracking</h3>
+                <p>Hours taught and schedule analysis</p>
+                <a href="{{ url_for('schedule') }}" class="btn btn-primary">
+                    View Schedule
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.reports-container {
+    padding: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+}
+
+.report-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease;
+}
+
+.report-card:hover {
+    transform: translateY(-4px);
+}
+
+.report-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(45deg, #F1A150, #C86706);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.report-icon i {
+    font-size: 24px;
+    color: white;
+}
+
+.report-content h3 {
+    margin: 0 0 12px 0;
+    color: #333;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.report-content p {
+    margin: 0 0 20px 0;
+    color: #666;
+    line-height: 1.5;
+}
+</style>
+{% endblock %}
+'''

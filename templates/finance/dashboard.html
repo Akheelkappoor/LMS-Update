@@ -1,0 +1,336 @@
+dashboard.html{% extends "base.html" %}
+
+{% block title %}Finance Dashboard - LMS{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">
+            <i class="fas fa-calculator"></i> Finance Dashboard
+        </h1>
+        <p class="dashboard-subtitle">Monitor attendance, compliance, and payroll</p>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon danger">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.late_arrivals_today }}</div>
+                <div class="stat-label">Late Arrivals Today</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="fas fa-video"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.overdue_recordings }}</div>
+                <div class="stat-label">Overdue Recordings</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon info">
+                <i class="fas fa-comments"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.overdue_feedback }}</div>
+                <div class="stat-label">Overdue Feedback</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.compliance_rate }}%</div>
+                <div class="stat-label">Compliance Rate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Items Grid -->
+    <div class="dashboard-grid">
+        <!-- Late Arrivals -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-clock text-danger"></i> Today's Late Arrivals
+                </h3>
+                <a href="{{ url_for('finance_late_arrivals') }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if late_arrivals %}
+                    <div class="late-arrivals-list">
+                        {% for arrival in late_arrivals %}
+                        <div class="late-arrival-item">
+                            <div class="tutor-info">
+                                <strong>{{ arrival.tutor.full_name }}</strong>
+                                <div class="class-info">{{ arrival.class_session.class_obj.subject }}</div>
+                            </div>
+                            <div class="late-details">
+                                <span class="late-badge">{{ arrival.late_minutes }} min late</span>
+                                <div class="penalty-amount">₹{{ arrival.penalty_amount }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <p>No late arrivals today!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Overdue Recordings -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-video text-warning"></i> Overdue Recordings
+                </h3>
+            </div>
+            <div class="card-body">
+                {% if overdue_recordings %}
+                    <div class="overdue-list">
+                        {% for session in overdue_recordings %}
+                        <div class="overdue-item">
+                            <div class="session-info">
+                                <strong>{{ session.tutor.full_name }}</strong>
+                                <div class="class-details">
+                                    {{ session.class_obj.subject }} - 
+                                    {{ session.scheduled_start.strftime('%m/%d %H:%M') }}
+                                </div>
+                            </div>
+                            <div class="overdue-status">
+                                {% set hours_overdue = ((moment.utcnow() - session.recording_deadline).total_seconds() / 3600) | int %}
+                                <span class="overdue-badge">{{ hours_overdue }}h overdue</span>
+                                <button class="btn btn-sm btn-warning" onclick="sendReminder('{{ session.id }}')">
+                                    Send Reminder
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <p>All recordings up to date!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Late Students -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-user-clock text-info"></i> Late Students (Parent Notifications)
+                </h3>
+            </div>
+            <div class="card-body">
+                {% if late_students %}
+                    <div class="late-students-list">
+                        {% for attendance in late_students %}
+                        <div class="student-item">
+                            <div class="student-info">
+                                <strong>{{ attendance.student.full_name }}</strong>
+                                <div class="class-info">{{ attendance.class_session.class_obj.subject }}</div>
+                            </div>
+                            <div class="late-info">
+                                <span class="late-badge">{{ attendance.late_minutes }} min</span>
+                                <button class="btn btn-sm btn-primary" onclick="notifyParent('{{ attendance.id }}')">
+                                    Notify Parent
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <p>No late student notifications pending!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-bolt"></i> Quick Actions
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="quick-actions">
+                    <a href="{{ url_for('finance_payroll') }}" class="action-btn">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Payroll Management</span>
+                    </a>
+                    <a href="{{ url_for('finance_late_arrivals') }}" class="action-btn">
+                        <i class="fas fa-clock"></i>
+                        <span>Late Arrival Reports</span>
+                    </a>
+                    <button class="action-btn" onclick="sendAllReminders()">
+                        <i class="fas fa-envelope"></i>
+                        <span>Send All Reminders</span>
+                    </button>
+                    <a href="{{ url_for('finance_compliance_report') }}" class="action-btn">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Compliance Reports</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Finance Dashboard Specific Styles */
+.late-arrival-item, .overdue-item, .student-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.late-arrival-item:last-child,
+.overdue-item:last-child,
+.student-item:last-child {
+    border-bottom: none;
+}
+
+.tutor-info, .session-info, .student-info {
+    flex: 1;
+}
+
+.class-info, .class-details {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.late-badge, .overdue-badge {
+    background: var(--danger-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.penalty-amount {
+    color: var(--danger-color);
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px;
+    background: var(--light-color);
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: var(--transition);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.action-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.action-btn i {
+    font-size: 24px;
+}
+
+.action-btn span {
+    font-size: 14px;
+    font-weight: 500;
+}
+</style>
+
+<script>
+function sendReminder(sessionId) {
+    if (confirm('Send recording reminder to tutor?')) {
+        fetch(`/api/sessions/${sessionId}/send-reminder`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Reminder sent successfully!');
+                location.reload();
+            } else {
+                alert('Error sending reminder: ' + data.message);
+            }
+        });
+    }
+}
+
+function notifyParent(attendanceId) {
+    if (confirm('Send late arrival notification to parent?')) {
+        fetch(`/api/attendance/${attendanceId}/notify-parent`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Parent notification sent!');
+                location.reload();
+            } else {
+                alert('Error sending notification: ' + data.message);
+            }
+        });
+    }
+}
+
+function sendAllReminders() {
+    if (confirm('Send all pending reminders? This may take a few moments.')) {
+        fetch('/admin/send-reminders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('All reminders processed!');
+            location.reload();
+        })
+        .catch(error => {
+            alert('Error processing reminders: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}

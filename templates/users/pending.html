@@ -1,0 +1,653 @@
+{% extends "base.html" %}
+
+{% block title %}Pending User Approvals - LMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">
+            <i class="fas fa-user-clock"></i>
+            Pending Approvals
+            {% if approvals %}
+            <span class="badge badge-warning">{{ approvals|length }}</span>
+            {% endif %}
+        </h1>
+        <div class="header-actions">
+            <a href="{{ url_for('users') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Back to Users
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if approvals %}
+<div class="approvals-list">
+    {% for approval in approvals %}
+        {% if approval.user %}
+        <div class="approval-card">
+            <div class="approval-header">
+                <div class="user-info">
+                    <div class="user-avatar-small">
+                        {% if approval.user.profile_picture %}
+                            <img src="{{ url_for('static', filename='uploads/' + approval.user.profile_picture) }}" alt="">
+                        {% else %}
+                            <i class="fas fa-user"></i>
+                        {% endif %}
+                    </div>
+                    <div class="user-details">
+                        <h3>{{ approval.user.full_name or approval.user.username }}</h3>
+                        <p>{{ approval.user.email }}</p>
+                    </div>
+                </div>
+                <div class="approval-meta">
+                    <span class="badge badge-{{ 'primary' if approval.user.role == 'admin' else 'warning' if approval.user.role == 'coordinator' else 'info' }}">
+                        {{ approval.user.role|title }}
+                    </span>
+                    {% if approval.user.department %}
+                    <span class="department-tag">{{ approval.user.department.name }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="approval-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Username:</label>
+                        <span>{{ approval.user.username }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Phone:</label>
+                        <span>{{ approval.user.phone or 'Not provided' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Requested By:</label>
+                        <span>
+                            {% if approval.requester %}
+                                {{ approval.requester.full_name or approval.requester.username }} ({{ approval.requester.role|title }})
+                            {% else %}
+                                System Registration
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <label>Requested On:</label>
+                        <span>{{ approval.requested_at.strftime('%b %d, %Y at %I:%M %p') if approval.requested_at else 'N/A' }}</span>
+                    </div>
+                </div>
+                
+                {% if approval.user.role == 'coordinator' and approval.user.permissions %}
+                <div class="permissions-section">
+                    <h4>Assigned Permissions:</h4>
+                    <div class="permission-tags">
+                        {% for perm_code, enabled in approval.user.get_permissions().items() %}
+                            {% if enabled %}
+                            <span class="permission-tag">
+                                <i class="fas fa-check"></i>
+                                {{ perm_code|replace('_', ' ')|title }}
+                            </span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if approval.user.custom_fields %}
+                <div class="custom-fields-section">
+                    <h4>Additional Information:</h4>
+                    <div class="custom-fields-grid">
+                        {% for key, value in approval.user.get_custom_fields().items() %}
+                        <div class="custom-field-item">
+                            <label>{{ key|replace('_', ' ')|title }}:</label>
+                            <span>{{ value }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="approval-actions">
+                <button type="button" class="btn btn-success" onclick="approveUser('{{ approval.user.id }}')">
+                    <i class="fas fa-check"></i>
+                    Approve
+                </button>
+                
+                <button type="button" class="btn btn-danger" onclick="showRejectModal('{{ approval.user.id }}')">
+                    <i class="fas fa-times"></i>
+                    Reject
+                </button>
+                
+                <a href="{{ url_for('view_user', id=approval.user.id) }}" class="btn btn-secondary" target="_blank">
+                    <i class="fas fa-external-link-alt"></i>
+                    View Full Profile
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <!-- Handle orphaned approval records -->
+        <div class="approval-card error-card">
+            <div class="approval-header">
+                <div class="user-info">
+                    <div class="user-avatar-small error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="user-details">
+                        <h3>Orphaned Approval Record</h3>
+                        <p class="text-danger">Associated user not found</p>
+                    </div>
+                </div>
+                <div class="approval-meta">
+                    <span class="badge badge-danger">Error</span>
+                </div>
+            </div>
+            
+            <div class="approval-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Approval ID:</label>
+                        <span>{{ approval.id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>User ID:</label>
+                        <span>{{ approval.user_id }} (Not Found)</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Requested On:</label>
+                        <span>{{ approval.requested_at.strftime('%b %d, %Y at %I:%M %p') if approval.requested_at else 'N/A' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Status:</label>
+                        <span>{{ approval.status|title }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="approval-actions">
+                <button type="button" class="btn btn-danger" onclick="cleanupApproval('{{ approval.id }}')">
+                    <i class="fas fa-trash"></i>
+                    Clean Up Record
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-clipboard-check"></i>
+    <h3>No Pending Approvals</h3>
+    <p>All user registrations have been reviewed</p>
+    <a href="{{ url_for('users') }}" class="btn btn-primary">
+        <i class="fas fa-users"></i>
+        Manage Users
+    </a>
+</div>
+{% endif %}
+
+<!-- Approve Modal -->
+<div id="approveModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Approve User</h3>
+            <button class="btn-icon" onclick="closeModal('approveModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="approveForm" method="POST">
+            <div class="modal-body">
+                <p>Are you sure you want to approve this user?</p>
+                <p class="text-muted">The user will receive an email with their login credentials.</p>
+                
+                <div class="form-group">
+                    <label class="form-label">Comments (Optional)</label>
+                    <textarea name="comments" class="form-control" rows="3" placeholder="Any notes about this approval..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('approveModal')">Cancel</button>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-check"></i>
+                    Confirm Approval
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Reject User</h3>
+            <button class="btn-icon" onclick="closeModal('rejectModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="rejectForm" method="POST">
+            <div class="modal-body">
+                <p>Are you sure you want to reject this user?</p>
+                <p class="text-muted">The user will be notified of the rejection.</p>
+                
+                <div class="form-group">
+                    <label class="form-label">Rejection Reason (Required)</label>
+                    <textarea name="reason" class="form-control" rows="3" placeholder="Please provide a reason for rejection..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('rejectModal')">Cancel</button>
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-times"></i>
+                    Confirm Rejection
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.page-header {
+    margin-bottom: 30px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.badge {
+    background: var(--warning-color);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.badge.badge-primary { background: var(--primary-color); }
+.badge.badge-warning { background: var(--warning-color); }
+.badge.badge-info { background: var(--info-color); }
+.badge.badge-danger { background: var(--danger-color); }
+
+.approvals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.approval-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.approval-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.approval-card.error-card {
+    border-color: var(--danger-color);
+    background: rgba(220, 53, 69, 0.05);
+}
+
+.approval-header {
+    padding: 20px;
+    background: var(--light-color);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.user-avatar-small {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    overflow: hidden;
+}
+
+.user-avatar-small.error {
+    background: var(--danger-color);
+}
+
+.user-avatar-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-details h3 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.user-details p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.approval-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.department-tag {
+    background: rgba(255, 111, 0, 0.1);
+    color: var(--primary-color);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.approval-body {
+    padding: 20px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-item label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-item span {
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.permissions-section,
+.custom-fields-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.permissions-section h4,
+.custom-fields-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.permission-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.permission-tag {
+    background: rgba(76, 175, 80, 0.1);
+    color: var(--success-color);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.custom-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.custom-field-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.custom-field-item label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.custom-field-item span {
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.approval-actions {
+    padding: 20px;
+    background: var(--light-color);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 0;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 20px;
+    background: var(--light-color);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 20px;
+    background: var(--light-color);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: var(--primary-color);
+}
+
+.empty-state h3 {
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+    .approval-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .approval-actions {
+        justify-content: center;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        margin: 10% auto;
+        width: 95%;
+    }
+}
+</style>
+
+<script>
+function approveUser(userId) {
+    const form = document.getElementById('approveForm');
+    form.action = `/users/approve/${userId}`;
+    document.getElementById('approveModal').style.display = 'block';
+}
+
+function showRejectModal(userId) {
+    const form = document.getElementById('rejectForm');
+    form.action = `/users/reject/${userId}`;
+    document.getElementById('rejectModal').style.display = 'block';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+function cleanupApproval(approvalId) {
+    if (confirm('Are you sure you want to clean up this orphaned approval record?')) {
+        fetch(`/admin/cleanup-approval/${approvalId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Approval record cleaned up successfully!');
+                location.reload();
+            } else {
+                alert('Error cleaning up record: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error cleaning up record: ' + error.message);
+        });
+    }
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

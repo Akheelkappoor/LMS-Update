@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}Tutors - LMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">
+            <i class="fas fa-chalkboard-teacher"></i>
+            Tutors Management
+        </h1>
+        <div class="header-actions">
+            {% if current_user.role in ['superadmin', 'admin'] %}
+            <a href="{{ url_for('create_user') }}?role=tutor" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Add Tutor
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="page-container">
+    {% if tutors %}
+    <div class="tutors-grid">
+        {% for tutor in tutors %}
+        <div class="tutor-card">
+            <div class="tutor-header">
+                <div class="tutor-avatar">
+                    {% if tutor.profile_picture %}
+                        <img src="{{ url_for('static', filename='uploads/' + tutor.profile_picture) }}" alt="Profile">
+                    {% else %}
+                        <i class="fas fa-user"></i>
+                    {% endif %}
+                </div>
+                <div class="tutor-info">
+                    <h3>{{ tutor.full_name or tutor.username }}</h3>
+                    <p class="tutor-email">{{ tutor.email }}</p>
+                    {% if tutor.department %}
+                    <span class="department-tag">{{ tutor.department.name }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="tutor-stats">
+                <div class="stat-item">
+                    <i class="fas fa-users"></i>
+                    <span>0 Students</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-clock"></i>
+                    <span>0 Hours</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-star"></i>
+                    <span>5.0 Rating</span>
+                </div>
+            </div>
+            
+            <div class="tutor-status">
+                {% if tutor.is_active %}
+                <span class="status-badge active">Active</span>
+                {% else %}
+                <span class="status-badge inactive">Inactive</span>
+                {% endif %}
+            </div>
+            
+            <div class="tutor-actions">
+                <a href="{{ url_for('view_user', id=tutor.id) }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-eye"></i>
+                    View Profile
+                </a>
+                {% if current_user.role in ['superadmin', 'admin'] %}
+                <a href="{{ url_for('edit_user', id=tutor.id) }}" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-edit"></i>
+                    Edit
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-chalkboard-teacher"></i>
+        <h3>No Tutors Found</h3>
+        <p>No tutors have been added yet</p>
+        {% if current_user.role in ['superadmin', 'admin'] %}
+        <a href="{{ url_for('create_user') }}?role=tutor" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Add First Tutor
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.page-container {
+    padding: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.tutors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 24px;
+}
+
+.tutor-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease;
+    border: 1px solid #e9ecef;
+}
+
+.tutor-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.tutor-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.tutor-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #F1A150, #C86706);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    overflow: hidden;
+}
+
+.tutor-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.tutor-info h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.tutor-email {
+    margin: 4px 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.department-tag {
+    background: rgba(241, 161, 80, 0.1);
+    color: #F1A150;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.tutor-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding: 16px 0;
+    border-top: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #666;
+}
+
+.stat-item i {
+    color: #F1A150;
+    font-size: 16px;
+}
+
+.tutor-status {
+    margin-bottom: 16px;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-badge.active {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.status-badge.inactive {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.tutor-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.empty-state i {
+    font-size: 80px;
+    color: #F1A150;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    margin: 0 0 8px 0;
+    color: #333;
+    font-size: 24px;
+}
+
+.empty-state p {
+    margin: 0 0 24px 0;
+    font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .tutors-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tutor-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .tutor-stats {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .stat-item {
+        flex-direction: row;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

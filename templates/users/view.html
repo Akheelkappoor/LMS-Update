@@ -1,0 +1,565 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.full_name or user.username }} - User Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 bg-gradient-info text-white">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-2">
+                            <div class="user-avatar-large bg-white rounded-circle d-flex align-items-center justify-content-center mx-auto" 
+                                 style="width: 100px; height: 100px;">
+                                {% if user.profile_picture %}
+                                    <img src="{{ url_for('static', filename='uploads/' + user.profile_picture) }}" 
+                                         class="rounded-circle" width="100" height="100">
+                                {% else %}
+                                    <i class="fas fa-user fa-3x text-primary"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h1 class="h3 mb-2 text-white">{{ user.full_name or user.username }}</h1>
+                            <p class="mb-1 opacity-75">
+                                <span class="badge bg-{{ 
+                                    'danger' if user.role == 'superadmin' else 
+                                    'primary' if user.role == 'admin' else 
+                                    'success' if user.role == 'coordinator' else 
+                                    'info' if user.role == 'tutor' else 
+                                    'warning' 
+                                }} me-2">
+                                    {{ user.role|title|replace('_', ' ') }}
+                                </span>
+                                {% if user.department %}
+                                    {{ user.department.name }}
+                                {% endif %}
+                            </p>
+                            <p class="mb-0 opacity-75">
+                                <i class="fas fa-envelope me-2"></i>{{ user.email }}
+                                {% if user.phone %}
+                                    <i class="fas fa-phone ms-3 me-2"></i>{{ user.phone }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div class="col-md-4 text-end">
+                            <div class="d-flex gap-2 justify-content-end">
+                                <a href="{{ url_for('users') }}" class="btn btn-light btn-sm">
+                                    <i class="fas fa-arrow-left me-1"></i>
+                                    Back to Users
+                                </a>
+                                {% if current_user.role in ['superadmin', 'admin'] %}
+                                <a href="{{ url_for('edit_user', id=user.id) }}" class="btn btn-outline-light btn-sm">
+                                    <i class="fas fa-edit me-1"></i>
+                                    Edit User
+                                </a>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mt-2">
+                                <small class="opacity-75">
+                                    Status: 
+                                    {% if user.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                    {% endif %}
+                                    
+                                    {% if not user.is_approved and user.role != 'superadmin' %}
+                                        <span class="badge bg-warning ms-1">Pending Approval</span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Personal Information -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user text-primary me-2"></i>
+                        Personal Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Full Name</label>
+                            <p class="mb-0 fw-medium">{{ user.full_name or 'Not provided' }}</p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Username</label>
+                            <p class="mb-0 fw-medium">{{ user.username }}</p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Email Address</label>
+                            <p class="mb-0 fw-medium">
+                                <a href="mailto:{{ user.email }}" class="text-decoration-none">
+                                    {{ user.email }}
+                                </a>
+                            </p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Phone Number</label>
+                            <p class="mb-0 fw-medium">
+                                {% if user.phone %}
+                                    <a href="tel:{{ user.phone }}" class="text-decoration-none">
+                                        {{ user.phone }}
+                                    </a>
+                                {% else %}
+                                    Not provided
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Member Since</label>
+                            <p class="mb-0 fw-medium">
+                                {{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'Unknown' }}
+                            </p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Last Login</label>
+                            <p class="mb-0 fw-medium">
+                                {% if user.last_login %}
+                                    {{ user.last_login.strftime('%B %d, %Y at %I:%M %p') }}
+                                {% else %}
+                                    <span class="text-muted">Never logged in</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Information -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cogs text-warning me-2"></i>
+                        System Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Role</label>
+                            <p class="mb-0">
+                                <span class="badge bg-{{ 
+                                    'danger' if user.role == 'superadmin' else 
+                                    'primary' if user.role == 'admin' else 
+                                    'success' if user.role == 'coordinator' else 
+                                    'info' if user.role == 'tutor' else 
+                                    'warning' 
+                                }} fs-6">
+                                    {{ user.role|title|replace('_', ' ') }}
+                                </span>
+                            </p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Department</label>
+                            <p class="mb-0 fw-medium">
+                                {% if user.department %}
+                                    <a href="{{ url_for('departments') }}" class="text-decoration-none">
+                                        {{ user.department.name }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">No Department</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Account Status</label>
+                            <p class="mb-0">
+                                {% if user.is_active %}
+                                    <span class="badge bg-success-soft text-success">
+                                        <i class="fas fa-check-circle me-1"></i>Active
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger-soft text-danger">
+                                        <i class="fas fa-times-circle me-1"></i>Inactive
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Approval Status</label>
+                            <p class="mb-0">
+                                {% if user.is_approved or user.role == 'superadmin' %}
+                                    <span class="badge bg-success-soft text-success">
+                                        <i class="fas fa-check-circle me-1"></i>Approved
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning-soft text-warning">
+                                        <i class="fas fa-clock me-1"></i>Pending
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        {% if user.approved_by %}
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Approved By</label>
+                            <p class="mb-0 fw-medium">
+                                {{ user.approver.full_name if user.approver else 'System' }}
+                            </p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Approval Date</label>
+                            <p class="mb-0 fw-medium">
+                                {{ user.approved_at.strftime('%B %d, %Y') if user.approved_at else 'N/A' }}
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Financial Information (for Tutors) -->
+        {% if user.role == 'tutor' %}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-dollar-sign text-success me-2"></i>
+                        Financial Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Hourly Rate</label>
+                            <p class="mb-0 fw-medium">
+                                {% if user.hourly_rate %}
+                                    ₹{{ "{:,.0f}".format(user.hourly_rate) }} per hour
+                                {% else %}
+                                    <span class="text-muted">Not set</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Payment Method</label>
+                            <p class="mb-0 fw-medium">
+                                {{ user.payment_method|title|replace('_', ' ') if user.payment_method else 'Not specified' }}
+                            </p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Tax ID / PAN</label>
+                            <p class="mb-0 fw-medium">
+                                {{ user.tax_id if user.tax_id else 'Not provided' }}
+                            </p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Bank Details</label>
+                            <p class="mb-0 fw-medium">
+                                {% set bank_details = user.get_bank_details() %}
+                                {% if bank_details.bank_name %}
+                                    {{ bank_details.bank_name }}
+                                    <small class="text-muted d-block">
+                                        A/C: ***{{ bank_details.account_number[-4:] if bank_details.account_number else '' }}
+                                    </small>
+                                {% else %}
+                                    <span class="text-muted">Not provided</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Performance Metrics (for Tutors) -->
+        {% if user.role == 'tutor' %}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line text-info me-2"></i>
+                        Performance Metrics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Total Classes</label>
+                            <p class="mb-0 fw-medium">{{ user.total_classes_taught or 0 }}</p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Punctuality Score</label>
+                            <p class="mb-0">
+                                <span class="fw-medium">{{ "{:.1f}".format(user.punctuality_score or 100) }}%</span>
+                                {% if (user.punctuality_score or 100) >= 95 %}
+                                    <i class="fas fa-star text-warning ms-1"></i>
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Late Arrivals</label>
+                            <p class="mb-0 fw-medium">{{ user.late_arrival_count or 0 }}</p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Feedback Rating</label>
+                            <p class="mb-0">
+                                {% if user.feedback_rating %}
+                                    <span class="fw-medium">{{ "{:.1f}".format(user.feedback_rating) }}/5.0</span>
+                                    {% for i in range(5) %}
+                                        {% if i < user.feedback_rating %}
+                                            <i class="fas fa-star text-warning"></i>
+                                        {% else %}
+                                            <i class="far fa-star text-muted"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted">No ratings yet</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Emergency Contact -->
+        {% set emergency_contact = user.get_emergency_contact() %}
+        {% if emergency_contact %}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-phone-alt text-danger me-2"></i>
+                        Emergency Contact
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Contact Name</label>
+                            <p class="mb-0 fw-medium">{{ emergency_contact.name or 'Not provided' }}</p>
+                        </div>
+                        
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Phone Number</label>
+                            <p class="mb-0 fw-medium">
+                                {% if emergency_contact.phone %}
+                                    <a href="tel:{{ emergency_contact.phone }}" class="text-decoration-none">
+                                        {{ emergency_contact.phone }}
+                                    </a>
+                                {% else %}
+                                    Not provided
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div class="col-sm-12">
+                            <label class="text-muted small">Relationship</label>
+                            <p class="mb-0 fw-medium">{{ emergency_contact.relationship|title if emergency_contact.relationship else 'Not specified' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Admin Actions -->
+        {% if current_user.role in ['superadmin', 'admin'] and user.id != current_user.id %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm border-warning">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-shield-alt text-warning me-2"></i>
+                        Admin Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <button onclick="LMS.resetUserPassword('{{ user.id }}', '{{ user.full_name or user.username }}')" 
+                                    class="btn btn-outline-warning w-100">
+                                <i class="fas fa-key me-2"></i>
+                                Reset Password
+                            </button>
+                        </div>
+                        
+                        {% if user.is_active %}
+                        <div class="col-md-3">
+                            <button onclick="LMS.confirmAction('Deactivate {{ user.full_name or user.username }}?', function() { window.location.href = '{{ url_for('delete_user_route', id=user.id) }}'; });" 
+                                    class="btn btn-outline-danger w-100">
+                                <i class="fas fa-user-times me-2"></i>
+                                Deactivate User
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="col-md-3">
+                            <form method="POST" action="{{ url_for('restore_user', id=user.id) }}" class="w-100">
+                                <button type="submit" class="btn btn-outline-success w-100">
+                                    <i class="fas fa-user-check me-2"></i>
+                                    Reactivate User
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                        
+                        {% if not user.is_approved and user.role != 'superadmin' %}
+                        <div class="col-md-3">
+                            <form method="POST" action="{{ url_for('approve_user_route', user_id=user.id) }}" class="w-100">
+                               <button type="submit" class="btn btn-outline-success w-100">
+                                   <i class="fas fa-check me-2"></i>
+                                   Approve User
+                               </button>
+                           </form>
+                       </div>
+                       {% endif %}
+                       
+                       <div class="col-md-3">
+                           <a href="{{ url_for('edit_user', id=user.id) }}" class="btn btn-outline-primary w-100">
+                               <i class="fas fa-edit me-2"></i>
+                               Edit Profile
+                           </a>
+                       </div>
+                   </div>
+                   
+                   <div class="alert alert-warning mt-3 mb-0">
+                       <i class="fas fa-exclamation-triangle me-2"></i>
+                       <strong>Warning:</strong> Admin actions will affect the user's access and functionality. 
+                       Password resets will send new credentials to the user's email.
+                   </div>
+               </div>
+           </div>
+       </div>
+       {% endif %}
+   </div>
+</div>
+
+<style>
+.bg-gradient-info {
+   background: linear-gradient(135deg, #17a2b8, #138496) !important;
+}
+
+.user-avatar-large {
+   box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+   transition: transform 0.3s ease;
+}
+
+.user-avatar-large:hover {
+   transform: scale(1.05);
+}
+
+.bg-success-soft {
+   background-color: rgba(40, 167, 69, 0.1) !important;
+   border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
+.bg-danger-soft {
+   background-color: rgba(220, 53, 69, 0.1) !important;
+   border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.bg-warning-soft {
+   background-color: rgba(255, 193, 7, 0.1) !important;
+   border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+.card {
+   transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+   transform: translateY(-2px);
+   box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+}
+
+.border-warning {
+   border-width: 2px !important;
+}
+
+.text-decoration-none:hover {
+   text-decoration: underline !important;
+}
+
+.fw-medium {
+   font-weight: 500;
+}
+
+.fs-6 {
+   font-size: 0.875rem;
+}
+
+.badge {
+   font-size: 0.75rem;
+   padding: 0.5em 0.75em;
+}
+
+.fa-star.text-warning {
+   color: #ffc107 !important;
+}
+
+.fa-star.text-muted {
+   color: #6c757d !important;
+}
+
+.alert-warning {
+   background-color: rgba(255, 193, 7, 0.1);
+   border-color: rgba(255, 193, 7, 0.2);
+   color: #856404;
+}
+
+@keyframes fadeInUp {
+   from {
+       opacity: 0;
+       transform: translateY(30px);
+   }
+   to {
+       opacity: 1;
+       transform: translateY(0);
+   }
+}
+
+.card {
+   animation: fadeInUp 0.6s ease-out;
+}
+
+.card:nth-child(1) { animation-delay: 0.1s; }
+.card:nth-child(2) { animation-delay: 0.2s; }
+.card:nth-child(3) { animation-delay: 0.3s; }
+.card:nth-child(4) { animation-delay: 0.4s; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+   // Initialize tooltips for all elements with data-bs-toggle="tooltip"
+   const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+   const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+       return new bootstrap.Tooltip(tooltipTriggerEl);
+   });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,1109 @@
+{% extends "base.html" %}
+
+{% block title %}Form Builder - LMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">
+            <i class="fas fa-hammer"></i>
+            Form Builder
+        </h1>
+        <p class="page-subtitle">Create custom forms with drag and drop</p>
+    </div>
+</div>
+
+<div class="form-builder-container">
+    <!-- Form Settings -->
+    <div class="form-settings card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-cog"></i>
+                Form Settings
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label class="form-label required">Form Name</label>
+                <input type="text" id="formName" class="form-control" placeholder="e.g., Tutor Registration Form">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea id="formDescription" class="form-control" rows="2" placeholder="Brief description..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required">Form Type</label>
+                <select id="formType" class="form-control">
+                    <option value="user">User Registration</option>
+                    <option value="tutor">Tutor Registration</option>
+                    <option value="student">Student Registration</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <div class="builder-layout">
+        <!-- Field Types Panel -->
+        <div class="field-types-panel card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-toolbox"></i>
+                    Field Types
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="field-type-list">
+                    <div class="field-type" draggable="true" data-type="text">
+                        <i class="fas fa-font"></i>
+                        <span>Text Field</span>
+                    </div>
+                    
+                    <div class="field-type" draggable="true" data-type="email">
+                        <i class="fas fa-envelope"></i>
+                        <span>Email Field</span>
+                    </div>
+                    
+                    <div class="field-type" draggable="true" data-type="number">
+                        <i class="fas fa-hashtag"></i>
+                        <span>Number Field</span>
+                    </div>
+                    
+                    <div class="field-type" draggable="true" data-type="phone">
+                        <i class="fas fa-phone"></i>
+                        <span>Phone Field</span>
+                    </div>
+                    
+                    <div class="field-type" draggable="true" data-type="date">
+                        <i class="fas fa-calendar"></i>
+                        <span>Date Picker</span>
+                    </div>
+                    
+                    <div class="field-type" draggable="true" data-type="dropdown">
+                        <i class="fas fa-caret-down"></i>
+                        <span>Dropdown</span>
+                    </div>
+                    
+                    <div class="field-type" draggable="true" data-type="checkbox">
+                        <i class="fas fa-check-square"></i>
+                        <span>Checkboxes</span>
+                    </div>
+                    
+                    <div class="field-type" draggable="true" data-type="radio">
+                        <i class="fas fa-dot-circle"></i>
+                        <span>Radio Buttons</span>
+                    </div>
+                    
+                    <div class="field-type" draggable="true" data-type="textarea">
+                        <i class="fas fa-align-left"></i>
+                        <span>Text Area</span>
+                    </div>
+                    
+                    <div class="field-type" draggable="true" data-type="file">
+                        <i class="fas fa-upload"></i>
+                        <span>File Upload</span>
+                    </div>
+                    
+                    <div class="field-type" draggable="true" data-type="toggle">
+                        <i class="fas fa-toggle-on"></i>
+                        <span>Yes/No Toggle</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Form Preview -->
+        <div class="form-preview-panel card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-eye"></i>
+                    Form Preview
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="formFields" class="form-fields-container">
+                    <div class="empty-state">
+                        <i class="fas fa-hand-pointer"></i>
+                        <p>Drag fields here to start building your form</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Field Properties -->
+        <div class="field-properties-panel card" id="fieldProperties" style="display: none;">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-sliders-h"></i>
+                    Field Properties
+                </h3>
+            </div>
+            <div class="card-body" id="propertiesContent">
+                <!-- Properties will be loaded here dynamically -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Form Actions -->
+    <div class="form-actions">
+        <button class="btn btn-secondary" onclick="previewForm()">
+            <i class="fas fa-eye"></i>
+            Preview
+        </button>
+        <button class="btn btn-primary" onclick="saveForm()">
+            <i class="fas fa-save"></i>
+            Save Form
+        </button>
+    </div>
+</div>
+
+<!-- Field Template -->
+<template id="fieldTemplate">
+    <div class="form-field-item" draggable="true">
+        <div class="field-header">
+            <span class="field-icon"></span>
+            <span class="field-label"></span>
+            <div class="field-actions">
+                <button class="btn-icon small" onclick="editField(this)" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon small danger" onclick="removeField(this)" title="Remove">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        <div class="field-preview"></div>
+    </div>
+</template>
+
+<style>
+/* Base Styles */
+:root {
+    --border-color: rgba(0, 0, 0, 0.1);
+    --light-color: #f8f9fa;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.form-builder-container {
+    padding: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Card Styles */
+.card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.card-title i {
+    color: var(--primary-color);
+}
+
+.card-body {
+    padding: 20px;
+}
+
+/* Field Types Panel */
+.field-type {
+    position: relative;
+    overflow: hidden;
+    background: var(--light-color);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 16px;
+    cursor: grab;
+    transition: all 0.3s ease;
+}
+
+.field-type:hover {
+    border-color: var(--primary-color);
+    transform: translateX(4px);
+    background: white;
+}
+
+.field-type i {
+    font-size: 16px;
+    width: 24px;
+    color: var(--primary-color);
+}
+
+/* Form Preview */
+.form-fields-container {
+    min-height: 500px;
+    background: var(--light-color);
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    transition: all 0.3s ease;
+}
+
+.form-field-item {
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.3s ease;
+}
+
+.form-field-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow);
+}
+
+.form-field-item.selected {
+    border-color: var(--primary-color);
+    background: rgba(241, 161, 80, 0.02);
+}
+
+/* Properties Panel */
+.property-group {
+    padding: 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.property-group:last-child {
+    border-bottom: none;
+}
+
+.property-group h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.property-group h4::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    background: linear-gradient(45deg, #F1A150, #C86706);
+    border-radius: 2px;
+}
+
+/* Form Controls */
+.form-control {
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(241, 161, 80, 0.1);
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #F1A150, #C86706);
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(200, 103, 6, 0.2);
+}
+
+/* Preview Modal Styles */
+.preview-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(34, 34, 34, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 40px;
+    backdrop-filter: blur(8px);
+    animation: modalFadeIn 0.3s ease;
+}
+
+.preview-content {
+    background: white;
+    border-radius: 24px;
+    width: 100%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    transform-origin: center;
+    animation: modalSlideIn 0.3s ease;
+}
+
+.preview-header {
+    padding: 24px 32px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to right, rgba(241, 161, 80, 0.1), transparent);
+}
+
+.preview-header h3 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.preview-header h3::before {
+    content: '';
+    width: 4px;
+    height: 24px;
+    background: linear-gradient(45deg, #F1A150, #C86706);
+    border-radius: 2px;
+}
+
+.preview-header .btn-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-header .btn-icon:hover {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    transform: rotate(90deg);
+}
+
+.preview-body {
+    padding: 32px;
+    overflow-y: auto;
+    max-height: calc(90vh - 90px);
+}
+
+.preview-body form {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .preview-modal {
+        padding: 20px;
+    }
+    
+    .preview-header {
+        padding: 20px;
+    }
+    
+    .preview-header h3 {
+        font-size: 20px;
+    }
+    
+    .preview-body {
+        padding: 20px;
+    }
+}
+
+/* Builder Layout */
+.builder-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr 400px;  /* Changed from 300px 1fr to include properties panel */
+    gap: 24px;
+    margin: 24px 0;
+}
+
+/* Field Properties Panel */
+.field-properties-panel {
+    position: sticky;
+    top: 24px;
+    height: fit-content;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 1600px) {
+    .builder-layout {
+        grid-template-columns: 300px 1fr 350px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .builder-layout {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    
+    .field-properties-panel {
+        position: relative;
+        top: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .form-builder-container {
+        padding: 16px;
+    }
+    
+    .card {
+        border-radius: 12px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+let formFields = [];
+let selectedField = null;
+
+// Initialize drag and drop
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDragDrop();
+});
+
+function initializeDragDrop() {
+    // Field types drag
+    document.querySelectorAll('.field-type').forEach(fieldType => {
+        fieldType.addEventListener('dragstart', handleDragStart);
+        fieldType.addEventListener('dragend', handleDragEnd);
+    });
+    
+    // Form container drop
+    const formContainer = document.getElementById('formFields');
+    formContainer.addEventListener('dragover', handleDragOver);
+    formContainer.addEventListener('drop', handleDrop);
+    formContainer.addEventListener('dragleave', handleDragLeave);
+}
+
+function handleDragStart(e) {
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('fieldType', e.target.dataset.type);
+    e.dataTransfer.setData('isNew', 'true');
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    
+    const isNew = e.dataTransfer.getData('isNew') === 'true';
+    
+    if (isNew) {
+        const fieldType = e.dataTransfer.getData('fieldType');
+        addField(fieldType);
+    }
+}
+
+function addField(type) {
+    const field = {
+        id: Date.now(),
+        type: type,
+        name: `field_${Date.now()}`,
+        label: getDefaultLabel(type),
+        required: false,
+        placeholder: '',
+        help_text: '',
+        options: type === 'dropdown' || type === 'checkbox' || type === 'radio' ? ['Option 1', 'Option 2'] : [],
+        validation: {}
+    };
+    
+    formFields.push(field);
+    renderFields();
+    
+    // Clear empty state
+    const emptyState = document.querySelector('.empty-state');
+    if (emptyState) {
+        emptyState.style.display = 'none';
+    }
+    
+    // Select the new field
+    setTimeout(() => {
+        const newFieldElement = document.querySelector(`[data-field-id="${field.id}"]`);
+        if (newFieldElement) {
+            selectField(newFieldElement, field);
+        }
+    }, 100);
+}
+
+function getDefaultLabel(type) {
+    const labels = {
+        text: 'Text Field',
+        email: 'Email Address',
+        number: 'Number',
+        phone: 'Phone Number',
+        date: 'Date',
+        dropdown: 'Dropdown Select',
+        checkbox: 'Checkbox Options',
+        radio: 'Radio Options',
+        textarea: 'Text Area',
+        file: 'File Upload',
+        toggle: 'Yes/No Question'
+    };
+    return labels[type] || 'Field';
+}
+
+function renderFields() {
+    const container = document.getElementById('formFields');
+    
+    if (formFields.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-hand-pointer"></i>
+                <p>Drag fields here to start building your form</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = formFields.map(field => renderField(field)).join('');
+    
+    // Re-initialize drag for field items
+    container.querySelectorAll('.form-field-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const fieldId = parseInt(this.dataset.fieldId);
+            const field = formFields.find(f => f.id === fieldId);
+            selectField(this, field);
+        });
+    });
+}
+
+function renderField(field) {
+    const icons = {
+        text: 'fa-font',
+        email: 'fa-envelope',
+        number: 'fa-hashtag',
+        phone: 'fa-phone',
+        date: 'fa-calendar',
+        dropdown: 'fa-caret-down',
+        checkbox: 'fa-check-square',
+        radio: 'fa-dot-circle',
+        textarea: 'fa-align-left',
+        file: 'fa-upload',
+        toggle: 'fa-toggle-on'
+    };
+    
+    return `
+        <div class="form-field-item" data-field-id="${field.id}">
+            <div class="field-header">
+                <span class="field-icon"><i class="fas ${icons[field.type]}"></i></span>
+                <span class="field-label">${field.label} ${field.required ? '<span class="text-danger">*</span>' : ''}</span>
+                <div class="field-actions">
+                    <button class="btn-icon small" onclick="editField(${field.id})" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon small danger" onclick="removeField(${field.id})" title="Remove">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="field-preview">
+                ${renderFieldPreview(field)}
+            </div>
+        </div>
+    `;
+}
+
+function renderFieldPreview(field) {
+    switch(field.type) {
+        case 'text':
+        case 'email':
+        case 'number':
+        case 'phone':
+        case 'date':
+            return `<input type="${field.type}" class="form-control" placeholder="${field.placeholder || field.label}" disabled>`;
+        
+        case 'dropdown':
+            return `
+                <select class="form-control" disabled>
+                    <option>Select ${field.label}</option>
+                    ${field.options.map(opt => `<option>${opt}</option>`).join('')}
+                </select>
+            `;
+        
+        case 'checkbox':
+            return field.options.map(opt => `
+                <label class="checkbox-label">
+                    <input type="checkbox" disabled> ${opt}
+                </label>
+            `).join('<br>');
+        
+        case 'radio':
+            return field.options.map(opt => `
+                <label class="radio-label">
+                    <input type="radio" name="preview_${field.id}" disabled> ${opt}
+                </label>
+            `).join('<br>');
+        
+        case 'textarea':
+            return `<textarea class="form-control" rows="3" placeholder="${field.placeholder || field.label}" disabled></textarea>`;
+        
+        case 'file':
+            return `<input type="file" class="form-control" disabled>`;
+        
+        case 'toggle':
+            return `
+                <label class="toggle-label">
+                    <input type="checkbox" disabled> ${field.label}
+                </label>
+            `;
+        
+        default:
+            return '';
+    }
+}
+
+function selectField(element, field) {
+    // Remove previous selection
+    document.querySelectorAll('.form-field-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Add selection to clicked field
+    element.classList.add('selected');
+    selectedField = field;
+    
+    // Show properties panel
+    showFieldProperties(field);
+}
+
+function showFieldProperties(field) {
+    const panel = document.getElementById('fieldProperties');
+    const content = document.getElementById('propertiesContent');
+    
+    panel.style.display = 'block';
+    
+    content.innerHTML = `
+        <div class="property-group">
+            <h4>Basic Properties</h4>
+            
+            <div class="form-group">
+                <label class="form-label">Field Label</label>
+                <input type="text" class="form-control" id="propLabel" value="${field.label}" onchange="updateFieldProperty('label', this.value)">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Field Name</label>
+                <input type="text" class="form-control" id="propName" value="${field.name}" onchange="updateFieldProperty('name', this.value)">
+                <small class="form-text">Used for form submission (no spaces)</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="propRequired" ${field.required ? 'checked' : ''} onchange="updateFieldProperty('required', this.checked)">
+                    Required Field
+                </label>
+            </div>
+        </div>
+        
+        ${field.type !== 'file' && field.type !== 'toggle' ? `
+        <div class="property-group">
+            <h4>Display Options</h4>
+            
+            <div class="form-group">
+                <label class="form-label">Placeholder Text</label>
+                <input type="text" class="form-control" id="propPlaceholder" value="${field.placeholder || ''}" onchange="updateFieldProperty('placeholder', this.value)">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Help Text</label>
+                <input type="text" class="form-control" id="propHelpText" value="${field.help_text || ''}" onchange="updateFieldProperty('help_text', this.value)">
+                <small class="form-text">Shows below the field</small>
+            </div>
+        </div>
+        ` : ''}
+        
+        ${(field.type === 'dropdown' || field.type === 'checkbox' || field.type === 'radio') ? `
+        <div class="property-group">
+            <h4>Options</h4>
+            
+            <div id="optionsList">
+                ${field.options.map((opt, idx) => `
+                    <div class="option-item">
+                        <input type="text" class="form-control" value="${opt}" onchange="updateOption(${idx}, this.value)">
+                        <button class="btn-icon small danger" onclick="removeOption(${idx})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <button class="btn btn-sm btn-secondary mt-2" onclick="addOption()">
+                <i class="fas fa-plus"></i> Add Option
+            </button>
+        </div>
+        ` : ''}
+        
+        ${field.type === 'number' ? `
+        <div class="property-group">
+            <h4>Validation</h4>
+            
+            <div class="form-group">
+                <label class="form-label">Minimum Value</label>
+                <input type="number" class="form-control" id="propMin" value="${field.validation.min || ''}" onchange="updateValidation('min', this.value)">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Maximum Value</label>
+                <input type="number" class="form-control" id="propMax" value="${field.validation.max || ''}" onchange="updateValidation('max', this.value)">
+            </div>
+        </div>
+        ` : ''}
+        
+        ${field.type === 'text' || field.type === 'textarea' ? `
+        <div class="property-group">
+            <h4>Validation</h4>
+            
+            <div class="form-group">
+                <label class="form-label">Minimum Length</label>
+                <input type="number" class="form-control" id="propMinLength" value="${field.validation.minLength || ''}" onchange="updateValidation('minLength', this.value)">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Maximum Length</label>
+                <input type="number" class="form-control" id="propMaxLength" value="${field.validation.maxLength || ''}" onchange="updateValidation('maxLength', this.value)">
+            </div>
+        </div>
+        ` : ''}
+        
+        ${field.type === 'file' ? `
+        <div class="property-group">
+            <h4>File Options</h4>
+            
+            <div class="form-group">
+                <label class="form-label">Accepted File Types</label>
+                <input type="text" class="form-control" id="propAccept" value="${field.validation.accept || ''}" onchange="updateValidation('accept', this.value)" placeholder="e.g., .pdf,.doc,.docx">
+                <small class="form-text">Comma-separated file extensions</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Max File Size (MB)</label>
+                <input type="number" class="form-control" id="propMaxSize" value="${field.validation.maxSize || ''}" onchange="updateValidation('maxSize', this.value)">
+            </div>
+        </div>
+        ` : ''}
+    `;
+}
+
+function updateFieldProperty(property, value) {
+    if (selectedField) {
+        selectedField[property] = value;
+        renderFields();
+        
+        // Re-select the field
+        setTimeout(() => {
+            const fieldElement = document.querySelector(`[data-field-id="${selectedField.id}"]`);
+            if (fieldElement) {
+                fieldElement.classList.add('selected');
+            }
+        }, 10);
+    }
+}
+
+function updateValidation(property, value) {
+    if (selectedField) {
+        if (!selectedField.validation) {
+            selectedField.validation = {};
+        }
+        selectedField.validation[property] = value;
+    }
+}
+
+function updateOption(index, value) {
+    if (selectedField && selectedField.options) {
+        selectedField.options[index] = value;
+        renderFields();
+        showFieldProperties(selectedField);
+    }
+}
+
+function addOption() {
+    if (selectedField && selectedField.options) {
+        selectedField.options.push(`Option ${selectedField.options.length + 1}`);
+        renderFields();
+        showFieldProperties(selectedField);
+    }
+}
+
+function removeOption(index) {
+    if (selectedField && selectedField.options && selectedField.options.length > 1) {
+        selectedField.options.splice(index, 1);
+        renderFields();
+        showFieldProperties(selectedField);
+    }
+}
+
+function editField(fieldId) {
+    const field = formFields.find(f => f.id === fieldId);
+    const element = document.querySelector(`[data-field-id="${fieldId}"]`);
+    if (field && element) {
+        selectField(element, field);
+    }
+}
+
+function removeField(fieldId) {
+    formFields = formFields.filter(f => f.id !== fieldId);
+    renderFields();
+    
+    // Hide properties panel if this was the selected field
+    if (selectedField && selectedField.id === fieldId) {
+        document.getElementById('fieldProperties').style.display = 'none';
+        selectedField = null;
+    }
+}
+
+function previewForm() {
+    if (formFields.length === 0) {
+        alert('Please add some fields to preview the form');
+        return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'preview-modal';
+    modal.innerHTML = `
+        <div class="preview-content">
+            <div class="preview-header">
+                <h3>
+                    ${document.getElementById('formName').value || 'Form Preview'}
+                </h3>
+                <button class="btn-icon" onclick="closePreview()" title="Close Preview">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="preview-body">
+                <form id="previewForm">
+                    ${formFields.map(field => renderFormField(field)).join('')}
+                    <div class="form-actions" style="margin-top: 32px;">
+                        <button type="button" class="btn btn-primary" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                            Submit Form
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Add close on click outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closePreview();
+        }
+    });
+}
+
+function renderFormField(field) {
+    let html = '<div class="form-group">';
+    html += `<label class="form-label${field.required ? ' required' : ''}">${field.label}</label>`;
+    
+    switch(field.type) {
+        case 'text':
+        case 'email':
+        case 'number':
+        case 'phone':
+        case 'date':
+            html += `<input type="${field.type}" class="form-control" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''}>`;
+            break;
+        
+        case 'dropdown':
+            html += `<select class="form-control" ${field.required ? 'required' : ''}>
+                <option value="">Select ${field.label}</option>
+                ${field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+            </select>`;
+            break;
+        
+        case 'checkbox':
+            html += '<div class="checkbox-group">';
+            field.options.forEach(opt => {
+                html += `<label class="checkbox-label">
+                    <input type="checkbox" name="${field.name}[]" value="${opt}"> ${opt}
+                </label>`;
+            });
+            html += '</div>';
+            break;
+        
+        case 'radio':
+            html += '<div class="radio-group">';
+            field.options.forEach(opt => {
+                html += `<label class="radio-label">
+                    <input type="radio" name="${field.name}" value="${opt}" ${field.required ? 'required' : ''}> ${opt}
+                </label>`;
+            });
+            html += '</div>';
+            break;
+        
+        case 'textarea':
+            html += `<textarea class="form-control" rows="4" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''}></textarea>`;
+            break;
+        
+        case 'file':
+            html += `<input type="file" class="form-control" ${field.validation.accept ? `accept="${field.validation.accept}"` : ''} ${field.required ? 'required' : ''}>`;
+            break;
+        
+        case 'toggle':
+            html += `<label class="toggle-label">
+                <input type="checkbox" ${field.required ? 'required' : ''}> ${field.label}
+            </label>`;
+            break;
+    }
+    
+    if (field.help_text) {
+        html += `<small class="form-text">${field.help_text}</small>`;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function closePreview() {
+    document.querySelector('.preview-modal').remove();
+}
+
+function saveForm() {
+    const formName = document.getElementById('formName').value;
+    const formDescription = document.getElementById('formDescription').value;
+    const formType = document.getElementById('formType').value;
+    
+    if (!formName) {
+        alert('Please enter a form name');
+        return;
+    }
+    
+    if (formFields.length === 0) {
+        alert('Please add at least one field to the form');
+        return;
+    }
+    
+    const formData = {
+        name: formName,
+        description: formDescription,
+        form_type: formType,
+        fields: formFields
+    };
+    
+    // Send to server
+    fetch('{{ url_for("create_form") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = '{{ url_for("forms") }}';
+        } else {
+            alert('Error saving form. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving form. Please try again.');
+    });
+}
+
+// Styles for preview modal
+const style = document.createElement('style');
+style.textContent = `
+    .option-item {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 12px;
+        align-items: center;
+    }
+
+    .option-item .form-control {
+        flex: 1;
+    }
+
+    .option-item .btn-icon {
+        flex-shrink: 0;
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

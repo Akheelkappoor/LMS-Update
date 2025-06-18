@@ -1,0 +1,100 @@
+messages_template = '''
+{% extends "base.html" %}
+
+{% block title %}Messages - LMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">
+            <i class="fas fa-comments"></i>
+            Messages
+        </h1>
+    </div>
+</div>
+
+<div class="messages-container">
+    <div class="coming-soon">
+        <i class="fas fa-comments"></i>
+        <h2>Messages Coming Soon</h2>
+        <p>The messaging system is under development. You'll be able to communicate with students, tutors, and coordinators here.</p>
+        
+        <div class="features-preview">
+            <h3>Upcoming Features:</h3>
+            <ul>
+                <li><i class="fas fa-check"></i> Direct messaging between users</li>
+                <li><i class="fas fa-check"></i> Group conversations for classes</li>
+                <li><i class="fas fa-check"></i> File sharing and attachments</li>
+                <li><i class="fas fa-check"></i> Real-time notifications</li>
+                <li><i class="fas fa-check"></i> Message history and search</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+.messages-container {
+    padding: 32px;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.coming-soon {
+    background: white;
+    border-radius: 16px;
+    padding: 60px 40px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.coming-soon i {
+    font-size: 80px;
+    color: #F1A150;
+    margin-bottom: 24px;
+}
+
+.coming-soon h2 {
+    margin: 0 0 16px 0;
+    color: #333;
+    font-size: 32px;
+}
+
+.coming-soon p {
+    margin: 0 0 40px 0;
+    color: #666;
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+.features-preview {
+    text-align: left;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.features-preview h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    text-align: center;
+}
+
+.features-preview ul {
+    list-style: none;
+    padding: 0;
+}
+
+.features-preview li {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #666;
+}
+
+.features-preview li i {
+    color: #28a745;
+    font-size: 16px;
+}
+</style>
+{% endblock %}
+'''

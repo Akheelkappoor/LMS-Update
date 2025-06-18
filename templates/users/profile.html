@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - LMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">
+            <i class="fas fa-user-circle"></i>
+            My Profile
+        </h1>
+        <div class="header-actions">
+            <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">
+                <i class="fas fa-edit"></i>
+                Edit Profile
+            </a>
+            <a href="{{ url_for('change_password') }}" class="btn btn-secondary">
+                <i class="fas fa-key"></i>
+                Change Password
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="profile-container">
+    <div class="profile-card">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                {% if current_user.profile_picture %}
+                    <img src="{{ url_for('static', filename='uploads/' + current_user.profile_picture) }}" alt="Profile">
+                {% else %}
+                    <i class="fas fa-user"></i>
+                {% endif %}
+            </div>
+            <div class="profile-info">
+                <h2>{{ current_user.full_name or current_user.username }}</h2>
+                <p>{{ current_user.email }}</p>
+                <div class="profile-badges">
+                    <span class="badge badge-{{ 'primary' if current_user.role == 'superadmin' else 'secondary' if current_user.role == 'admin' else 'warning' if current_user.role == 'coordinator' else 'info' }}">
+                        {{ current_user.role|title }}
+                    </span>
+                    {% if current_user.department %}
+                    <span class="department-tag">{{ current_user.department.name }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="profile-details">
+            <h3>Personal Information</h3>
+            <div class="details-grid">
+                <div class="detail-item">
+                    <label>Username</label>
+                    <p>{{ current_user.username }}</p>
+                </div>
+                <div class="detail-item">
+                    <label>Email Address</label>
+                    <p>{{ current_user.email }}</p>
+                </div>
+                <div class="detail-item">
+                    <label>Full Name</label>
+                    <p>{{ current_user.full_name or 'Not provided' }}</p>
+                </div>
+                <div class="detail-item">
+                    <label>Phone Number</label>
+                    <p>{{ current_user.phone or 'Not provided' }}</p>
+                </div>
+                <div class="detail-item">
+                    <label>Department</label>
+                    <p>{{ current_user.department.name if current_user.department else 'Not assigned' }}</p>
+                </div>
+                <div class="detail-item">
+                    <label>Member Since</label>
+                    <p>{{ current_user.created_at.strftime('%B %d, %Y') }}</p>
+                </div>
+            </div>
+        </div>
+        
+        {% if current_user.role == 'coordinator' and current_user.get_permissions() %}
+        <div class="profile-details">
+            <h3>My Permissions</h3>
+            <div class="permissions-grid">
+                {% for code, enabled in current_user.get_permissions().items() %}
+                    {% if enabled %}
+                    <div class="permission-badge">
+                        <i class="fas fa-check-circle"></i>
+                        {{ code.replace('_', ' ')|title }}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="profile-details">
+            <h3>Account Activity</h3>
+            <div class="activity-items">
+                <div class="activity-item">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <strong>Last Login</strong>
+                        <p>{{ current_user.last_login.strftime('%B %d, %Y at %I:%M %p') if current_user.last_login else 'This is your first login' }}</p>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <div>
+                        <strong>Account Status</strong>
+                        <p><span class="text-success">Active</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.profile-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.profile-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 40px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    overflow: hidden;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-info h2 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+}
+
+.profile-info p {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    opacity: 0.9;
+}
+
+.profile-badges {
+    display: flex;
+    gap: 8px;
+}
+
+.profile-details {
+    padding: 30px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.profile-details:last-child {
+    border-bottom: none;
+}
+
+.profile-details h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.detail-item label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.detail-item p {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+.permissions-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.permission-badge {
+    background: rgba(102, 187, 106, 0.1);
+    color: var(--success-color);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.activity-items {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: start;
+    gap: 16px;
+}
+
+.activity-item i {
+    width: 40px;
+    height: 40px;
+    background: var(--light-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+}
+
+.activity-item strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.activity-item p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+</style>
+{% endblock %}
