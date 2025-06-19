@@ -1,710 +1,312 @@
 {% extends "base.html" %}
 
-{% block title %}Student Management - LMS{% endblock %}
+{% block title %}Students - LMS{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 bg-gradient-success text-white">
-                <div class="card-body p-4">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h1 class="h3 mb-2 text-white">
-                                <i class="fas fa-user-graduate me-3"></i>
-                                Student Management
-                            </h1>
-                            <p class="mb-0 opacity-75">Manage student records, enrollments, and academic progress</p>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <div class="btn-group">
-                                <a href="{{ url_for('create_student_route') }}" class="btn btn-light">
-                                    <i class="fas fa-user-plus me-2"></i>
-                                    Add Student
-                                </a>
-                                <button class="btn btn-outline-light dropdown-toggle" data-bs-toggle="dropdown">
-                                    <i class="fas fa-cog me-1"></i>
-                                    Actions
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#" onclick="exportStudents('csv')">
-                                        <i class="fas fa-file-csv me-2"></i>Export CSV
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="exportStudents('excel')">
-                                        <i class="fas fa-file-excel me-2"></i>Export Excel
-                                    </a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#" onclick="showBulkEnrollModal()">
-                                        <i class="fas fa-graduation-cap me-2"></i>Bulk Enrollment
-                                    </a></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Statistics Cards -->
-    <div class="row g-4 mb-4">
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-primary bg-gradient rounded-3 p-3 text-white me-3">
-                            <i class="fas fa-users fa-2x"></i>
-                        </div>
-                        <div>
-                            <h3 class="h4 mb-1">{{ stats.total_students or 0 }}</h3>
-                            <p class="text-muted mb-0">Total Students</p>
-                            <small class="text-success">
-                                <i class="fas fa-arrow-up me-1"></i>
-                                +{{ stats.new_students_this_month or 0 }} this month
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-success bg-gradient rounded-3 p-3 text-white me-3">
-                            <i class="fas fa-graduation-cap fa-2x"></i>
-                        </div>
-                        <div>
-                            <h3 class="h4 mb-1">{{ stats.total_enrollments or 0 }}</h3>
-                            <p class="text-muted mb-0">Active Enrollments</p>
-                            <small class="text-info">
-                                <i class="fas fa-book me-1"></i>
-                                Across all subjects
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-warning bg-gradient rounded-3 p-3 text-dark me-3">
-                            <i class="fas fa-layer-group fa-2x"></i>
-                        </div>
-                        <div>
-                            <h3 class="h4 mb-1">{{ grades|length or 0 }}</h3>
-                            <p class="text-muted mb-0">Grade Levels</p>
-                            <small class="text-primary">
-                                <i class="fas fa-chart-bar me-1"></i>
-                                Distribution available
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-info bg-gradient rounded-3 p-3 text-white me-3">
-                            <i class="fas fa-percent fa-2x"></i>
-                        </div>
-                        <div>
-                            <h3 class="h4 mb-1">{{ stats.attendance_rate or 0 }}%</h3>
-                            <p class="text-muted mb-0">Attendance Rate</p>
-                            <small class="text-{{ 'success' if (stats.attendance_rate or 0) >= 85 else 'warning' }}">
-                                <i class="fas fa-{{ 'check' if (stats.attendance_rate or 0) >= 85 else 'exclamation-triangle' }} me-1"></i>
-                                {{ 'Excellent' if (stats.attendance_rate or 0) >= 85 else 'Needs attention' }}
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Advanced Filters -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-transparent border-0">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="card-title mb-0">
-                            <i class="fas fa-filter text-primary me-2"></i>
-                            Search & Filter Students
-                        </h6>
-                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
-                            <i class="fas fa-sliders-h me-1"></i>
-                            Advanced Filters
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <form method="GET" class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Search Students</label>
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="fas fa-search"></i>
-                                </span>
-                                <input type="text" name="search" class="form-control search-input" 
-                                       placeholder="Search by name, email, or student ID..."
-                                       value="{{ current_search }}" data-search-type="students">
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-2">
-                            <label class="form-label">Grade</label>
-                            <select name="grade" class="form-select">
-                                <option value="">All Grades</option>
-                                {% for grade in grades %}
-                                <option value="{{ grade }}" {% if current_grade == grade %}selected{% endif %}>
-                                    {{ grade }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-2">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-select">
-                                <option value="">All Status</option>
-                                <option value="active" {% if current_status == 'active' %}selected{% endif %}>Active</option>
-                                <option value="inactive" {% if current_status == 'inactive' %}selected{% endif %}>Inactive</option>
-                                <option value="graduated" {% if current_status == 'graduated' %}selected{% endif %}>Graduated</option>
-                                <option value="dropped" {% if current_status == 'dropped' %}selected{% endif %}>Dropped</option>
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-2">
-                            <label class="form-label">Department</label>
-                            <select name="department" class="form-select">
-                                <option value="">All Departments</option>
-                                {% for dept in departments %}
-                                <option value="{{ dept.id }}" {% if current_department == dept.id|string %}selected{% endif %}>
-                                    {{ dept.name }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-search me-1"></i>
-                                Search
-                            </button>
-                        </div>
-                    </form>
-
-                    <!-- Advanced Filters Collapse -->
-                    <div class="collapse mt-3" id="advancedFilters">
-                        <div class="border-top pt-3">
-                            <div class="row g-3">
-                                <div class="col-md-3">
-                                    <label class="form-label">Age Range</label>
-                                    <div class="row g-1">
-                                        <div class="col-6">
-                                            <input type="number" name="age_min" class="form-control form-control-sm" placeholder="Min" min="5" max="25">
-                                        </div>
-                                        <div class="col-6">
-                                            <input type="number" name="age_max" class="form-control form-control-sm" placeholder="Max" min="5" max="25">
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-3">
-                                    <label class="form-label">Enrollment Date</label>
-                                    <input type="date" name="enrollment_date" class="form-control form-control-sm">
-                                </div>
-                                
-                                <div class="col-md-3">
-                                    <label class="form-label">Has Enrollments</label>
-                                    <select name="has_enrollments" class="form-select form-select-sm">
-                                        <option value="">Any</option>
-                                        <option value="yes">With Enrollments</option>
-                                        <option value="no">No Enrollments</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="col-md-3">
-                                    <label class="form-label">Board</label>
-                                    <select name="board" class="form-select form-select-sm">
-                                        <option value="">All Boards</option>
-                                        <option value="CBSE">CBSE</option>
-                                        <option value="ICSE">ICSE</option>
-                                        <option value="State">State Board</option>
-                                        <option value="IB">IB</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions Bar -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body py-2">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <div class="d-flex align-items-center gap-3">
-                                <span class="text-muted">Quick Actions:</span>
-                                <button class="btn btn-sm btn-outline-primary" onclick="showPromotionModal()">
-                                    <i class="fas fa-level-up-alt me-1"></i>
-                                    Promote Students
-                                </button>
-                                <button class="btn btn-sm btn-outline-success" onclick="showBulkEnrollModal()">
-                                    <i class="fas fa-graduation-cap me-1"></i>
-                                    Bulk Enroll
-                                </button>
-                                <button class="btn btn-sm btn-outline-info" onclick="generateReport()">
-                                    <i class="fas fa-chart-bar me-1"></i>
-                                    Generate Report
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <small class="text-muted">
-                                Showing {{ students|length }} of {{ stats.total_students or 0 }} students
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Students Grid/List -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-list text-primary me-2"></i>
-                        Student Directory
-                    </h5>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-secondary active" id="gridView" onclick="toggleView('grid')">
-                            <i class="fas fa-th"></i>
-                        </button>
-                        <button class="btn btn-outline-secondary" id="listView" onclick="toggleView('list')">
-                            <i class="fas fa-list"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="card-body p-0">
-                    {% if students %}
-                    <!-- Grid View -->
-                    <div id="studentsGrid" class="p-4">
-                        <div class="row g-4">
-                            {% for student in students %}
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <div class="card border-0 shadow-sm h-100 student-card">
-                                    <div class="card-body text-center p-4">
-                                        <div class="student-avatar mx-auto mb-3 bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" 
-                                             style="width: 80px; height: 80px; font-size: 24px;">
-                                            {% if student.profile_picture %}
-                                                <img src="{{ url_for('static', filename='uploads/students/' + student.profile_picture) }}" 
-                                                     class="rounded-circle" width="80" height="80">
-                                            {% else %}
-                                                {{ student.first_name[0] }}{{ student.last_name[0] }}
-                                            {% endif %}
-                                        </div>
-                                        
-                                        <h6 class="card-title mb-1">{{ student.full_name }}</h6>
-                                        <p class="text-muted mb-2 small">{{ student.student_id }}</p>
-                                        
-                                        <div class="mb-3">
-                                            <span class="badge bg-{{ 'success' if student.status == 'active' else 'warning' if student.status == 'inactive' else 'info' if student.status == 'graduated' else 'danger' }}">
-                                                {{ student.status|title }}
-                                            </span>
-                                            {% if student.grade %}
-                                            <span class="badge bg-light text-dark ms-1">{{ student.grade }}</span>
-                                            {% endif %}
-                                        </div>
-                                        
-                                        <div class="d-flex justify-content-center gap-1 mb-3">
-                                            <small class="text-muted">
-                                                <i class="fas fa-envelope me-1"></i>
-                                                {% if student.email %}
-                                                    <span class="text-success">Email</span>
-                                                {% else %}
-                                                    <span class="text-muted">No Email</span>
-                                                {% endif %}
-                                            </small>
-                                            <small class="text-muted ms-2">
-                                                <i class="fas fa-phone me-1"></i>
-                                                {% if student.phone %}
-                                                    <span class="text-success">Phone</span>
-                                                {% else %}
-                                                    <span class="text-muted">No Phone</span>
-                                                {% endif %}
-                                            </small>
-                                        </div>
-                                        
-                                        <div class="d-grid gap-2">
-                                            <a href="{{ url_for('view_student', id=student.id) }}" class="btn btn-sm btn-primary">
-                                                <i class="fas fa-eye me-1"></i>
-                                                View Profile
-                                            </a>
-                                            <div class="btn-group btn-group-sm">
-                                                <a href="{{ url_for('enroll_student_route', id=student.id) }}" class="btn btn-outline-success">
-                                                    <i class="fas fa-graduation-cap me-1"></i>
-                                                    Enroll
-                                                </a>
-                                                <a href="{{ url_for('edit_student', id=student.id) }}" class="btn btn-outline-secondary">
-                                                    <i class="fas fa-edit me-1"></i>
-                                                    Edit
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <!-- List View (Hidden by default) -->
-                    <div id="studentsList" class="table-responsive" style="display: none;">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th width="50">
-                                        <input type="checkbox" class="form-check-input" id="selectAllStudents">
-                                    </th>
-                                    <th>Student</th>
-                                    <th>Grade</th>
-                                    <th>Contact</th>
-                                    <th>Enrollments</th>
-                                    <th>Status</th>
-                                    <th width="150">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for student in students %}
-                                <tr class="student-row">
-                                    <td>
-                                        <input type="checkbox" class="form-check-input student-checkbox" value="{{ student.id }}">
-                                    </td>
-                                    
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-3">
-                                                {% if student.profile_picture %}
-                                                    <img src="{{ url_for('static', filename='uploads/students/' + student.profile_picture) }}" 
-                                                         class="rounded-circle" width="40" height="40">
-                                                {% else %}
-                                                    {{ student.first_name[0] }}{{ student.last_name[0] }}
-                                                {% endif %}
-                                            </div>
-                                            <div>
-                                                <h6 class="mb-0">{{ student.full_name }}</h6>
-                                                <small class="text-muted">{{ student.student_id }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    
-                                    <td>
-                                        {% if student.grade %}
-                                            <span class="badge bg-light text-dark">{{ student.grade }}</span>
-                                        {% else %}
-                                            <span class="text-muted">Not Set</span>
-                                        {% endif %}
-                                        {% if student.board %}
-                                            <small class="text-muted d-block">{{ student.board }}</small>
-                                        {% endif %}
-                                    </td>
-                                    
-                                    <td>
-                                        {% if student.email %}
-                                            <div class="mb-1">
-                                                <i class="fas fa-envelope text-muted me-1"></i>
-                                                <small>{{ student.email[:20] }}{{ '...' if student.email|length > 20 else '' }}</small>
-                                            </div>
-                                        {% endif %}
-                                        {% if student.phone %}
-                                            <div>
-                                                <i class="fas fa-phone text-muted me-1"></i>
-                                                <small>{{ student.phone }}</small>
-                                            </div>
-                                        {% endif %}
-                                    </td>
-                                    
-                                    <td>
-                                        <span class="badge bg-info">{{ student.enrollments|length or 0 }} Active</span>
-                                    </td>
-                                    
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if student.status == 'active' else 'warning' if student.status == 'inactive' else 'info' if student.status == 'graduated' else 'danger' }}">
-                                            {{ student.status|title }}
-                                        </span>
-                                    </td>
-                                    
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{{ url_for('view_student', id=student.id) }}" 
-                                               class="btn btn-outline-primary" data-bs-toggle="tooltip" title="View Details">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="{{ url_for('enroll_student_route', id=student.id) }}" 
-                                               class="btn btn-outline-success" data-bs-toggle="tooltip" title="Enroll">
-                                                <i class="fas fa-graduation-cap"></i>
-                                            </a>
-                                            <a href="{{ url_for('edit_student', id=student.id) }}" 
-                                               class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <div class="mb-4">
-                            <i class="fas fa-user-graduate fa-4x text-muted"></i>
-                        </div>
-                        <h5 class="text-muted">No Students Found</h5>
-                        <p class="text-muted mb-4">
-                            {% if current_search or current_grade or current_status %}
-                                No students match your current search criteria.
-                            {% else %}
-                                You haven't added any students yet.
-                            {% endif %}
-                        </p>
-                        <div class="d-flex gap-2 justify-content-center">
-                            <a href="{{ url_for('create_student_route') }}" class="btn btn-primary">
-                                <i class="fas fa-user-plus me-2"></i>
-                                Add First Student
-                            </a>
-                            {% if current_search or current_grade or current_status %}
-                            <a href="{{ url_for('students') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i>
-                                Clear Filters
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-                
-                {% if students %}
-                <div class="card-footer bg-transparent border-0">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <small class="text-muted">
-                                Showing {{ students|length }} students
-                                {% if current_search or current_grade or current_status %}
-                                    (filtered from {{ stats.total_students or 0 }} total)
-                                {% endif %}
-                            </small>
-                        </div>
-                        <div class="col-md-6 text-end">
-                            <div class="btn-group btn-group-sm">
-                                <a href="{{ url_for('students') }}" class="btn btn-outline-secondary">
-                                    <i class="fas fa-refresh me-1"></i>
-                                    Clear All Filters
-                                </a>
-                                <button class="btn btn-outline-primary" onclick="exportStudents('csv')">
-                                    <i class="fas fa-download me-1"></i>
-                                    Export Results
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">
+            <i class="fas fa-user-graduate"></i>
+            Students Management
+        </h1>
+        <div class="header-actions">
+            {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
+            <a href="{{ url_for('create_student') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Add Student
+            </a>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Search Results Dropdown -->
-<div id="studentSearchResults" class="position-absolute bg-white border rounded shadow-sm p-2" style="display: none; z-index: 1000; width: 300px;"></div>
+<!-- Search and Filters -->
+<div class="filters-section">
+    <div class="search-box">
+        <form method="GET" action="{{ url_for('students') }}" class="search-form">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="Search students..." 
+                       value="{{ current_search or '' }}">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <div class="filter-controls">
+        <select name="grade" class="form-control" onchange="filterStudents()">
+            <option value="">All Grades</option>
+            <option value="1st" {% if current_grade == '1st' %}selected{% endif %}>1st Grade</option>
+            <option value="2nd" {% if current_grade == '2nd' %}selected{% endif %}>2nd Grade</option>
+            <option value="3rd" {% if current_grade == '3rd' %}selected{% endif %}>3rd Grade</option>
+            <option value="4th" {% if current_grade == '4th' %}selected{% endif %}>4th Grade</option>
+            <option value="5th" {% if current_grade == '5th' %}selected{% endif %}>5th Grade</option>
+        </select>
+        
+        <select name="status" class="form-control" onchange="filterStudents()">
+            <option value="">All Status</option>
+            <option value="active" {% if current_status == 'active' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if current_status == 'inactive' %}selected{% endif %}>Inactive</option>
+            <option value="graduated" {% if current_status == 'graduated' %}selected{% endif %}>Graduated</option>
+        </select>
+    </div>
+</div>
+
+<!-- Students List -->
+<div class="students-container">
+    {% if students %}
+    <div class="students-grid">
+        {% for student in students %}
+        <div class="student-card">
+            <div class="student-avatar">
+                {% if student.profile_picture_path %}
+                <img src="{{ url_for('static', filename=student.profile_picture_path) }}" alt="{{ student.full_name }}">
+                {% else %}
+                <div class="avatar-placeholder">
+                    {{ student.first_name[0] }}{{ student.last_name[0] }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="student-info">
+                <h3 class="student-name">{{ student.full_name }}</h3>
+                <p class="student-id">ID: {{ student.student_id }}</p>
+                <p class="student-grade">Grade: {{ student.grade or 'Not specified' }}</p>
+                <p class="student-department">{{ student.department.name if student.department else 'No Department' }}</p>
+            </div>
+            
+            <div class="student-status">
+                <span class="status-badge status-{{ student.status }}">
+                    {{ student.status|title }}
+                </span>
+            </div>
+            
+            <div class="student-actions">
+                <a href="{{ url_for('view_student', id=student.id) }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-eye"></i>
+                    View
+                </a>
+                {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
+                <a href="{{ url_for('edit_student', id=student.id) }}" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-edit"></i>
+                    Edit
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-user-graduate"></i>
+        <h3>No Students Found</h3>
+        <p>{% if current_search %}No students match your search criteria.{% else %}No students have been added yet.{% endif %}</p>
+        {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
+        <a href="{{ url_for('create_student') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Add First Student
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
 
 <style>
-.bg-gradient-success {
-    background: linear-gradient(135deg, #28a745, #1e7e34) !important;
+.filters-section {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.search-box {
+    flex: 1;
+}
+
+.input-group {
+    display: flex;
+    max-width: 400px;
+}
+
+.input-group .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.input-group .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.filter-controls {
+    display: flex;
+    gap: 15px;
+}
+
+.filter-controls select {
+    min-width: 150px;
+}
+
+.students-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
 }
 
 .student-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;
-    cursor: pointer;
+    border: 1px solid #f0f0f0;
 }
 
 .student-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .student-avatar {
-    transition: transform 0.3s ease;
+    text-align: center;
+    margin-bottom: 16px;
 }
 
-.student-card:hover .student-avatar {
-    transform: scale(1.1);
+.student-avatar img,
+.avatar-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
 }
 
-.avatar-sm {
-    width: 40px;
-    height: 40px;
-    font-size: 16px;
-}
-
-.search-input {
-    position: relative;
-}
-
-#studentSearchResults {
-    top: 100%;
-    left: 0;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.student-result {
-    padding: 8px 12px;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
-}
-
-.student-result:hover {
-    background-color: #f8f9fa;
-}
-
-.btn-group .btn {
-    border-color: var(--border-color);
-}
-
-.card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
-}
-
-.table th {
+.avatar-placeholder {
+    background: linear-gradient(45deg, #F1A150, #C86706);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-weight: 600;
-    color: var(--text-primary);
-    border-bottom: 2px solid var(--border-color);
+    font-size: 18px;
+    margin: 0 auto;
 }
 
-.student-row {
-    transition: all 0.3s ease;
+.student-info {
+    text-align: center;
+    margin-bottom: 16px;
 }
 
-.student-row:hover {
-    background-color: rgba(40, 167, 69, 0.05) !important;
+.student-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
 }
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
+.student-id,
+.student-grade,
+.student-department {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.student-status {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-graduated {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.student-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.empty-state i {
+    font-size: 64px;
+    color: #F1A150;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .filters-section {
+        flex-direction: column;
+        align-items: stretch;
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+    
+    .filter-controls {
+        flex-direction: column;
+    }
+    
+    .students-grid {
+        grid-template-columns: 1fr;
     }
 }
-
-.student-card {
-    animation: fadeInUp 0.6s ease-out;
-}
-
-.student-card:nth-child(1) { animation-delay: 0.1s; }
-.student-card:nth-child(2) { animation-delay: 0.2s; }
-.student-card:nth-child(3) { animation-delay: 0.3s; }
-.student-card:nth-child(4) { animation-delay: 0.4s; }
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize tooltips
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+function filterStudents() {
+    const grade = document.querySelector('select[name="grade"]').value;
+    const status = document.querySelector('select[name="status"]').value;
     
-    // Handle select all functionality
-    const selectAllCheckbox = document.getElementById('selectAllStudents');
-    const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+    const url = new URL(window.location);
+    if (grade) url.searchParams.set('grade', grade);
+    else url.searchParams.delete('grade');
     
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            studentCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-        });
-    }
-});
-
-function toggleView(viewType) {
-    const gridView = document.getElementById('studentsGrid');
-    const listView = document.getElementById('studentsList');
-    const gridBtn = document.getElementById('gridView');
-    const listBtn = document.getElementById('listView');
+    if (status) url.searchParams.set('status', status);
+    else url.searchParams.delete('status');
     
-    if (viewType === 'grid') {
-        gridView.style.display = 'block';
-        listView.style.display = 'none';
-        gridBtn.classList.add('active');
-        listBtn.classList.remove('active');
-    } else {
-        gridView.style.display = 'none';
-        listView.style.display = 'block';
-        listBtn.classList.add('active');
-        gridBtn.classList.remove('active');
-    }
-    
-    // Store preference in localStorage
-    localStorage.setItem('studentViewPreference', viewType);
+    window.location.href = url.toString();
 }
-
-function exportStudents(format) {
-    const params = new URLSearchParams(window.location.search);
-    params.append('export', format);
-    window.location.href = `{{ url_for('students') }}?${params.toString()}`;
-}
-
-function showBulkEnrollModal() {
-    // This would show a modal for bulk enrollment
-    LMS.showAlert('Bulk enrollment feature coming soon!', 'info');
-}
-
-function showPromotionModal() {
-    // This would show a modal for promoting students
-    LMS.showAlert('Student promotion feature coming soon!', 'info');
-}
-
-function generateReport() {
-    // This would generate a detailed student report
-    window.open('{{ url_for("reports") }}?type=students', '_blank');
-}
-
-// Load saved view preference
-document.addEventListener('DOMContentLoaded', function() {
-    const savedView = localStorage.getItem('studentViewPreference') || 'grid';
-    toggleView(savedView);
-});
 </script>
 {% endblock %}

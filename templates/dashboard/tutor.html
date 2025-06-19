@@ -1,211 +1,400 @@
+<!-- templates/dashboard/tutor.html -->
 {% extends "base.html" %}
 
 {% block title %}Tutor Dashboard - LMS{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
-    <div class="dashboard-header">
-        <h1 class="dashboard-title">Tutor Dashboard</h1>
-        <p class="dashboard-subtitle">Welcome, {{ current_user.full_name or current_user.username }}!</p>
+    <!-- Welcome Header -->
+    <div class="tutor-welcome">
+        <div class="welcome-content">
+            <h1 class="welcome-title">
+                <i class="fas fa-chalkboard-teacher"></i>
+                Welcome back, {{ current_user.full_name or current_user.username }}!
+            </h1>
+            <p class="welcome-subtitle">Ready to inspire and educate today?</p>
+        </div>
+        <div class="performance-badge">
+            <div class="rating-value">{{ stats.performance_rating or 4.5 }}</div>
+            <div class="rating-stars">
+                {% for i in range(5) %}
+                <i class="fas fa-star {% if i < (stats.performance_rating or 4.5) %}active{% endif %}"></i>
+                {% endfor %}
+            </div>
+            <div class="rating-label">Your Rating</div>
+        </div>
     </div>
 
+    <!-- Statistics Cards -->
     <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon primary">
-                <i class="fas fa-clock"></i>
+        <div class="stat-card today">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-day"></i>
             </div>
             <div class="stat-content">
-                <div class="stat-value">{{ stats.total_hours }}</div>
-                <div class="stat-label">Total Hours Taught</div>
+                <div class="stat-value">{{ stats.classes_today or 0 }}</div>
+                <div class="stat-label">Today's Classes</div>
             </div>
         </div>
-        
-        <div class="stat-card">
-            <div class="stat-icon success">
-                <i class="fas fa-users"></i>
+
+        <div class="stat-card week">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-week"></i>
             </div>
             <div class="stat-content">
-                <div class="stat-value">{{ stats.active_students }}</div>
-                <div class="stat-label">Active Students</div>
+                <div class="stat-value">{{ stats.classes_this_week or 0 }}</div>
+                <div class="stat-label">This Week</div>
             </div>
         </div>
-        
-        <div class="stat-card">
-            <div class="stat-icon warning">
-                <i class="fas fa-calendar-check"></i>
+
+        <div class="stat-card students">
+            <div class="stat-icon">
+                <i class="fas fa-user-graduate"></i>
             </div>
             <div class="stat-content">
-                <div class="stat-value">{{ stats.classes_today }}</div>
-                <div class="stat-label">Classes Today</div>
+                <div class="stat-value">{{ stats.total_students or 0 }}</div>
+                <div class="stat-label">My Students</div>
             </div>
         </div>
-        
-        <div class="stat-card">
-            <div class="stat-icon info">
-                <i class="fas fa-chalkboard"></i>
+
+        <div class="stat-card completed">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
             </div>
             <div class="stat-content">
-                <div class="stat-value">{{ stats.completed_classes }}</div>
-                <div class="stat-label">Classes Completed</div>
+                <div class="stat-value">{{ stats.completed_classes or 0 }}</div>
+                <div class="stat-label">Completed</div>
             </div>
         </div>
     </div>
 
-    <div class="dashboard-grid">
-        <div class="card">
+    <!-- Main Content -->
+    <div class="tutor-grid">
+        <!-- Today's Schedule -->
+        <div class="schedule-card">
             <div class="card-header">
-                <h2 class="card-title">
-                    <i class="fas fa-calendar-day"></i>
+                <h3 class="card-title">
+                    <i class="fas fa-clock"></i>
                     Today's Schedule
-                </h2>
+                </h3>
+                <span class="date-badge">{{ moment().format('MMM DD, YYYY') }}</span>
             </div>
             <div class="card-body">
-                <div id="todayClasses">
-                    <div class="loading">Loading today's classes...</div>
-                </div>
+                {% if stats.today_schedule %}
+                    <div class="today-classes">
+                        {% for class in stats.today_schedule %}
+                        <div class="class-item {% if class.status == 'completed' %}completed{% endif %}">
+                            <div class="class-time">
+                                <div class="time-slot">{{ class.start_time.strftime('%H:%M') if class.start_time else 'N/A' }}</div>
+                                <div class="duration">{{ class.session_duration or 60 }}min</div>
+                            </div>
+                            <div class="class-info">
+                                <div class="subject">{{ class.subject }}</div>
+                                <div class="student">{{ class.enrollment.student.full_name if class.enrollment and class.enrollment.student else 'No Student' }}</div>
+                            </div>
+                            <div class="class-actions">
+                                {% if class.status == 'scheduled' %}
+                                <button class="btn btn-sm btn-primary" onclick="startClass('{{ class.id }}')">
+                                    <i class="fas fa-play"></i>
+                                    Start
+                                </button>
+                                {% elif class.status == 'in_progress' %}
+                                <button class="btn btn-sm btn-success" onclick="endClass('{{ class.id }}')">
+                                    <i class="fas fa-stop"></i>
+                                    End
+                                </button>
+                                {% else %}
+                                <span class="status-badge status-{{ class.status }}">{{ class.status|title }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-schedule">
+                        <i class="fas fa-calendar-day"></i>
+                        <h4>No classes today</h4>
+                        <p>Enjoy your free day!</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
-        
-        <div class="card">
+
+        <!-- Quick Actions -->
+        <div class="actions-card">
             <div class="card-header">
-                <h2 class="card-title">
-                    <i class="fas fa-chart-bar"></i>
-                    Teaching Summary
-                </h2>
+                <h3 class="card-title">
+                    <i class="fas fa-bolt"></i>
+                    Quick Actions
+                </h3>
             </div>
             <div class="card-body">
-                <div class="overview-stats">
-                    <div class="overview-item">
-                        <span class="overview-label">Total Enrollments</span>
-                        <span class="overview-value">{{ stats.total_enrollments }}</span>
-                    </div>
-                    <div class="overview-item">
-                        <span class="overview-label">Hours This Week</span>
-                        <span class="overview-value">{{ stats.total_hours }}</span>
-                    </div>
-                    <div class="overview-item">
-                        <span class="overview-label">Pending Salary</span>
-                        <span class="overview-value">₹{{ stats.pending_salary }}</span>
-                    </div>
+                <div class="action-list">
+                    <a href="{{ url_for('tutor_classes') }}" class="action-item">
+                        <i class="fas fa-chalkboard"></i>
+                        <span>My Classes</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    
+                    <a href="{{ url_for('tutor_attendance') }}" class="action-item">
+                        <i class="fas fa-user-check"></i>
+                        <span>Attendance</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    
+                    <a href="{{ url_for('schedule') }}" class="action-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Schedule</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    
+                    <a href="{{ url_for('profile') }}" class="action-item">
+                        <i class="fas fa-user-cog"></i>
+                        <span>Profile</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <div class="quick-actions">
-        <h3>Quick Actions</h3>
-        <div class="actions-grid">
-            <a href="{{ url_for('classes') }}" class="action-btn">
-                <i class="fas fa-chalkboard"></i>
-                <span>My Classes</span>
-            </a>
-            <a href="{{ url_for('schedule') }}" class="action-btn">
-                <i class="fas fa-calendar"></i>
-                <span>View Schedule</span>
-            </a>
-            <a href="{{ url_for('profile') }}" class="action-btn">
-                <i class="fas fa-user-circle"></i>
-                <span>My Profile</span>
-            </a>
-            <a href="#" class="action-btn" onclick="alert('Feature coming soon!')">
-                <i class="fas fa-upload"></i>
-                <span>Upload Materials</span>
-            </a>
+
+        <!-- Upcoming Classes -->
+        <div class="upcoming-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-calendar-plus"></i>
+                    Upcoming Classes
+                </h3>
+            </div>
+            <div class="card-body">
+                {% if stats.upcoming_classes %}
+                    <div class="upcoming-list">
+                        {% for class in stats.upcoming_classes[:5] %}
+                        <div class="upcoming-item">
+                            <div class="upcoming-date">
+                                <div class="day">{{ class.class_date.strftime('%d') if class.class_date else 'N/A' }}</div>
+                                <div class="month">{{ class.class_date.strftime('%b') if class.class_date else 'N/A' }}</div>
+                            </div>
+                            <div class="upcoming-info">
+                                <div class="subject">{{ class.subject }}</div>
+                                <div class="time">{{ class.start_time.strftime('%H:%M') if class.start_time else 'N/A' }} - {{ class.end_time.strftime('%H:%M') if class.end_time else 'N/A' }}</div>
+                                <div class="student">{{ class.enrollment.student.full_name if class.enrollment and class.enrollment.student else 'No Student' }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-plus"></i>
+                        <p>No upcoming classes</p>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
 
-<script>
-// Load today's classes for tutor
-document.addEventListener('DOMContentLoaded', function() {
-    loadTodayClasses();
-});
-
-function loadTodayClasses() {
-    fetch('/tutor/today-classes')
-        .then(response => response.json())
-        .then(data => {
-            const container = document.getElementById('todayClasses');
-            
-            if (data.length === 0) {
-                container.innerHTML = '<p class="no-classes">No classes scheduled for today</p>';
-                return;
-            }
-            
-            let html = '<div class="classes-list">';
-            data.forEach(cls => {
-                html += `
-                    <div class="class-item">
-                        <div class="class-time">${cls.time}</div>
-                        <div class="class-details">
-                            <div class="class-subject">${cls.subject}</div>
-                            <div class="class-student">${cls.student}</div>
-                        </div>
-                        <div class="class-actions">
-                            ${cls.meeting_link ? `<a href="${cls.meeting_link}" target="_blank" class="btn btn-sm btn-success">Join</a>` : ''}
-                        </div>
-                    </div>
-                `;
-            });
-            html += '</div>';
-            
-            container.innerHTML = html;
-        })
-        .catch(error => {
-            console.error('Error loading classes:', error);
-            document.getElementById('todayClasses').innerHTML = '<p class="error">Error loading classes</p>';
-        });
-}
-</script>
-
 <style>
-.classes-list {
+.tutor-welcome {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    border-radius: 16px;
+    padding: 30px;
+    margin-bottom: 30px;
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.performance-badge {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.rating-value {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.rating-stars {
+    margin-bottom: 8px;
+}
+
+.rating-stars i {
+    color: rgba(255, 255, 255, 0.3);
+    margin: 0 2px;
+}
+
+.rating-stars i.active {
+    color: #FFD700;
+}
+
+.tutor-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px 300px;
+    gap: 20px;
+}
+
+.schedule-card {
+    grid-row: span 2;
 }
 
 .class-item {
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 12px;
+    padding: 16px;
+    border: 2px solid #f0f0f0;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+}
+
+.class-item:hover {
+    border-color: #4CAF50;
+}
+
+.class-item.completed {
+    opacity: 0.7;
     background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid var(--primary-color);
 }
 
 .class-time {
-    font-weight: 600;
-    color: var(--primary-color);
-    min-width: 60px;
+    text-align: center;
+    min-width: 80px;
 }
 
-.class-details {
+.time-slot {
+    font-size: 18px;
+    font-weight: 600;
+    color: #4CAF50;
+}
+
+.duration {
+    font-size: 12px;
+    color: #666;
+}
+
+.class-info {
     flex: 1;
 }
 
-.class-subject {
+.subject {
     font-weight: 600;
-    color: var(--text-primary);
+    color: #333;
     margin-bottom: 4px;
 }
 
-.class-student {
+.student {
+    color: #666;
     font-size: 14px;
-    color: var(--text-secondary);
 }
 
-.no-classes, .error {
-    text-align: center;
-    color: var(--text-secondary);
-    padding: 20px;
+.action-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.loading {
+.action-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #333;
+    transition: all 0.3s ease;
+    border: 1px solid #f0f0f0;
+    margin-bottom: 8px;
+}
+
+.action-item:hover {
+    background: #f8f9fa;
+    border-color: #4CAF50;
+    color: #4CAF50;
+}
+
+.action-item span {
+    flex: 1;
+}
+
+.upcoming-item {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.upcoming-date {
     text-align: center;
-    color: var(--text-secondary);
-    padding: 20px;
+    min-width: 50px;
+}
+
+.day {
+    font-size: 20px;
+    font-weight: 700;
+    color: #4CAF50;
+}
+
+.month {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+}
+
+.stat-card.today {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+}
+
+.stat-card.week {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+}
+
+.stat-card.students {
+    background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+}
+
+.stat-card.completed {
+    background: linear-gradient(135deg, #4CAF50, #388E3C);
+}
+
+@media (max-width: 1200px) {
+    .tutor-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .schedule-card {
+        grid-column: span 2;
+        grid-row: span 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .tutor-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tutor-welcome {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
 }
 </style>
+
+<script>
+function startClass(classId) {
+    // Implementation for starting a class
+    console.log('Starting class:', classId);
+}
+
+function endClass(classId) {
+    // Implementation for ending a class
+    console.log('Ending class:', classId);
+}
+</script>
 {% endblock %}

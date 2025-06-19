@@ -5,20 +5,22 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 # Import all models in correct order to avoid circular imports
-from .user import User
-from .department import Department
-from .permission import Permission
-from .approval import UserApproval
-from .email_template import EmailTemplate
-from .form import FormTemplate, FormField
-from .student import Student, Parent
-from .tutor import TutorProfile, TutorAvailabilitySlot
-from .enrollment import StudentEnrollment
-from .classes import Class, StudentAttendance
-from .finance import StudentFee, FeeInstallment
-from .feedback import FeedbackFormTemplate, ClassFeedback
-from .notifications import SystemNotification, TutorLateArrival
-from .session import ClassSession
+from .user import *
+from .department import *
+from .permission import *
+from .approval import *
+from .email_template import *
+from .form import *
+from .student import *
+from .tutor import *
+from .enrollment import *
+from .classes import *
+from .finance import *
+from .feedback import *
+from .notifications import *
+from .session import *
+from .tutor import *
+
 
 __all__ = [
     'db',

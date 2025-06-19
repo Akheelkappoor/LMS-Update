@@ -1,19 +1,20 @@
+
 {% extends "base.html" %}
 
-{% block title %}System Setup - LMS{% endblock %}
+{% block title %}Register - LMS{% endblock %}
 
 {% block content %}
-<div class="setup-container">
-    <div class="setup-card">
-        <div class="setup-header">
-            <div class="setup-logo">
-                <i class="fas fa-cogs"></i>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="fas fa-user-plus"></i>
             </div>
-            <h1 class="setup-title">System Setup</h1>
-            <p class="setup-subtitle">Create your superadmin account to get started</p>
+            <h1 class="auth-title">Join Our Platform</h1>
+            <p class="auth-subtitle">Create your account to get started</p>
         </div>
         
-        <form method="POST" action="{{ url_for('setup') }}" class="setup-form">
+        <form method="POST" action="{{ url_for('register') }}" class="auth-form">
             <div class="form-row">
                 <div class="form-group">
                     <label for="full_name" class="form-label">Full Name *</label>
@@ -31,8 +32,27 @@
             </div>
             
             <div class="form-group">
-                <label for="mobile" class="form-label">Phone Number</label>
-                <input type="tel" class="form-control" id="mobile" name="mobile">
+                <label for="phone" class="form-label">Phone Number</label>
+                <input type="tel" class="form-control" id="phone" name="phone">
+            </div>
+            
+            <div class="form-group">
+                <label for="role" class="form-label">Role *</label>
+                <select class="form-control" id="role" name="role" required>
+                    <option value="">Select Role</option>
+                    <option value="tutor">Tutor</option>
+                    <option value="coordinator">Coordinator</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="department_id" class="form-label">Department</label>
+                <select class="form-control" id="department_id" name="department_id">
+                    <option value="">Select Department</option>
+                    {% for department in departments %}
+                    <option value="{{ department.id }}">{{ department.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
             
             <div class="form-group">
@@ -47,30 +67,19 @@
             </div>
             
             <button type="submit" class="btn btn-primary btn-block">
-                <i class="fas fa-rocket"></i>
-                Setup System
+                <i class="fas fa-user-plus"></i>
+                Create Account
             </button>
         </form>
         
-        <div class="setup-info">
-            <div class="info-card">
-                <i class="fas fa-info-circle"></i>
-                <div>
-                    <h4>Setup Information</h4>
-                    <ul>
-                        <li>This will create your superadmin account</li>
-                        <li>You'll have full access to all system features</li>
-                        <li>This setup only needs to be done once</li>
-                        <li>Keep your credentials secure</li>
-                    </ul>
-                </div>
-            </div>
+        <div class="auth-footer">
+            <p>Already have an account? <a href="{{ url_for('login') }}">Sign in here</a></p>
         </div>
     </div>
 </div>
 
 <style>
-.setup-container {
+.auth-container {
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -79,44 +88,44 @@
     padding: 20px;
 }
 
-.setup-card {
+.auth-card {
     background: white;
     border-radius: 20px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
     padding: 40px;
     width: 100%;
-    max-width: 600px;
+    max-width: 500px;
 }
 
-.setup-header {
+.auth-header {
     text-align: center;
     margin-bottom: 30px;
 }
 
-.setup-logo {
-    width: 100px;
-    height: 100px;
+.auth-logo {
+    width: 80px;
+    height: 80px;
     background: linear-gradient(45deg, #F1A150, #C86706);
-    border-radius: 25px;
+    border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 20px;
 }
 
-.setup-logo i {
+.auth-logo i {
     color: white;
-    font-size: 40px;
+    font-size: 32px;
 }
 
-.setup-title {
-    font-size: 32px;
+.auth-title {
+    font-size: 28px;
     font-weight: 700;
     color: #333;
     margin-bottom: 8px;
 }
 
-.setup-subtitle {
+.auth-subtitle {
     color: #666;
     font-size: 16px;
 }
@@ -124,7 +133,7 @@
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 15px;
 }
 
 .form-group {
@@ -164,11 +173,7 @@
     color: white;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin: 30px 0 20px 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    margin-top: 20px;
 }
 
 .btn-block:hover {
@@ -176,38 +181,21 @@
     box-shadow: 0 8px 25px rgba(200, 103, 6, 0.3);
 }
 
-.setup-info {
+.auth-footer {
+    text-align: center;
     margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
 }
 
-.info-card {
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 20px;
-    display: flex;
-    gap: 15px;
-    align-items: flex-start;
-}
-
-.info-card i {
+.auth-footer a {
     color: #F1A150;
-    font-size: 24px;
-    margin-top: 2px;
+    text-decoration: none;
+    font-weight: 500;
 }
 
-.info-card h4 {
-    margin: 0 0 10px 0;
-    color: #333;
-}
-
-.info-card ul {
-    margin: 0;
-    padding-left: 20px;
-    color: #666;
-}
-
-.info-card li {
-    margin-bottom: 5px;
+.auth-footer a:hover {
+    text-decoration: underline;
 }
 
 @media (max-width: 768px) {
@@ -215,7 +203,7 @@
         grid-template-columns: 1fr;
     }
     
-    .setup-card {
+    .auth-card {
         padding: 30px 20px;
     }
 }
