@@ -129,3 +129,30 @@ class TutorAvailabilitySlot(db.Model):
     # Relationships
     tutor_profile = db.relationship('TutorProfile', backref='availability_slots')
     enrollment = db.relationship('StudentEnrollment', backref='booked_slots')
+
+
+def set_custom_fields(self, custom_fields):
+    """Set custom fields as JSON"""
+    import json
+    self.custom_fields = json.dumps(custom_fields) if custom_fields else None
+
+def get_custom_fields(self):
+    """Get custom fields from JSON"""
+    import json
+    try:
+        return json.loads(self.custom_fields) if self.custom_fields else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+def set_uploaded_files(self, files_dict):
+    """Set uploaded files as JSON"""
+    import json
+    self.uploaded_files = json.dumps(files_dict) if files_dict else None
+
+def get_uploaded_files(self):
+    """Get uploaded files from JSON"""
+    import json
+    try:
+        return json.loads(self.uploaded_files) if self.uploaded_files else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}

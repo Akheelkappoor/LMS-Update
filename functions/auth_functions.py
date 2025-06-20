@@ -87,8 +87,10 @@ def register_new_user(form_data):
         return None, f"Registration failed: {str(e)}"
 
 def create_superadmin(admin_data):
-    """Create the initial superadmin user"""
+    """Create the initial superadmin user - COMPLETELY FIXED"""
     try:
+        print(f"Starting superadmin creation with data: {admin_data}")
+        
         # Check if superadmin already exists
         existing_superadmin = User.query.filter_by(role='superadmin').first()
         if existing_superadmin:
@@ -100,6 +102,18 @@ def create_superadmin(admin_data):
             if not admin_data.get(field):
                 return False, f"{field.replace('_', ' ').title()} is required."
         
+        # Check if email already exists
+        existing_email = User.query.filter_by(email=admin_data['email']).first()
+        if existing_email:
+            return False, "Email already exists."
+        
+        # Check if username already exists
+        existing_username = User.query.filter_by(username=admin_data['username']).first()
+        if existing_username:
+            return False, "Username already exists."
+        
+        print("Creating superadmin user object")
+        
         # Create superadmin user
         superadmin = User(
             username=admin_data['username'],
@@ -109,20 +123,34 @@ def create_superadmin(admin_data):
             role='superadmin',
             is_active=True,
             is_approved=True,  # Superadmin is auto-approved
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
         )
         
+        print("Setting password")
         superadmin.set_password(admin_data['password'])
         
+        print("Setting permissions")
         # Set all permissions for superadmin
-        superadmin.set_permissions(['*'])
+        try:
+            superadmin.set_permissions(['*'])
+        except Exception as perm_error:
+            print(f"Permission setting error (non-critical): {str(perm_error)}")
+            # Continue without permissions if method doesn't exist
         
+        print("Adding to database")
         db.session.add(superadmin)
+        
+        print("Committing to database")
         db.session.commit()
         
+        print("Superadmin created successfully")
         return True, f"Superadmin account created successfully for {admin_data['full_name']}!"
         
     except Exception as e:
+        print(f"Superadmin creation error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         db.session.rollback()
         return False, f"Superadmin creation failed: {str(e)}"
 

@@ -1,734 +1,111 @@
+
+<!-- templates/students/enroll.html -->
 {% extends "base.html" %}
-
-{% block title %}{{ student.full_name }} - Fee Management{% endblock %}
-
+{% block title %}Enroll {{ student.first_name }} {{ student.last_name }} - LMS{% endblock %}
 {% block content %}
-<div class="dashboard-container">
-    <!-- Header -->
-    <div class="dashboard-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="dashboard-title">
-                    <i class="fas fa-dollar-sign"></i> Fee Management
-                </h1>
-                <p class="dashboard-subtitle">{{ student.full_name }}</p>
-            </div>
-            <div class="header-actions">
-                <button class="btn btn-primary" onclick="showAddFeeModal()">
-                    <i class="fas fa-plus"></i> Add Fee
-                </button>
-                <a href="{{ url_for('view_student', id=student.id) }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back
-                </a>
-            </div>
+<div class="container">
+    <h1>Enroll Student: {{ student.first_name }} {{ student.last_name }}</h1>
+    <form method="POST">
+        <div class="form-group">
+            <label>Tutor</label>
+            <select name="tutor_id" class="form-control" required>
+                <option value="">Select Tutor</option>
+                {% for tutor in tutors %}
+                <option value="{{ tutor.id }}">{{ tutor.full_name }}</option>
+                {% endfor %}
+            </select>
         </div>
-    </div>
+        <div class="form-group">
+            <label>Enrollment Date</label>
+            <input type="date" name="enrollment_date" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Fee Amount</label>
+            <input type="number" name="fee_amount" class="form-control" step="0.01">
+        </div>
+        <button type="submit" class="btn btn-primary">Enroll Student</button>
+        <a href="{{ url_for('view_student', id=student.id) }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+
+<!-- templates/students/fees.html -->
+{% extends "base.html" %}
+{% block title %}{{ student.first_name }} {{ student.last_name }} - Fees{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Fees for {{ student.first_name }} {{ student.last_name }}</h1>
     
-    <!-- Fee Summary Cards -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon primary">
-                <i class="fas fa-wallet"></i>
-            </div>
-            <div class="stat-content">
-                <div class="stat-value">₹{{ "{:,.0f}".format(total_fees) }}</div>
-                <div class="stat-label">Total Fees</div>
-            </div>
-        </div>
-        
-        <div class="stat-card">
-            <div class="stat-icon success">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <div class="stat-content">
-                <div class="stat-value">₹{{ "{:,.0f}".format(paid_fees) }}</div>
-                <div class="stat-label">Paid Amount</div>
-            </div>
-        </div>
-        
-        <div class="stat-card">
-            <div class="stat-icon warning">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="stat-content">
-                <div class="stat-value">₹{{ "{:,.0f}".format(pending_fees) }}</div>
-                <div class="stat-label">Pending Amount</div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Fee Records -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-list"></i> Fee Records
-            </h3>
-        </div>
-        <div class="card-body">
+    <div class="row">
+        <div class="col-md-8">
+            <h3>Fee Records</h3>
             {% if fees %}
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Fee Type</th>
-                            <th>Description</th>
-                            <th>Total Amount</th>
-                            <th>Paid Amount</th>
-                            <th>Balance</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for fee in fees %}
-                        <tr>
-                            <td>
-                                <div class="fee-type">
-                                    <i class="fas fa-graduation-cap text-primary"></i>
-                                    <span>{{ fee.fee_type|title }}</span>
-                                </div>
-                            </td>
-                            <td>{{ fee.description or 'No description' }}</td>
-                            <td><strong>₹{{ "{:,.0f}".format(fee.amount) }}</strong></td>
-                            <td><strong>₹{{ "{:,.0f}".format(fee.paid_amount) }}</strong></td>
-                            <td><strong>₹{{ "{:,.0f}".format(fee.balance_amount) }}</strong></td>
-                            <td>
-                                {% if fee.payment_status == 'paid' %}
-                                    <span class="badge badge-success">Paid</span>
-                                {% elif fee.payment_status == 'partial' %}
-                                    <span class="badge badge-warning">Partial</span>
-                                {% else %}
-                                    <span class="badge badge-danger">Pending</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <form method="POST" action="{{ url_for('delete_fee', student_id=student.id, fee_id=fee.id) }}" style="display: inline;">
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this fee and all installments?')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fee in fees %}
+                    <tr>
+                        <td>{{ fee.fee_type|title }}</td>
+                        <td>₹{{ fee.amount }}</td>
+                        <td>{{ fee.due_date.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if fee.payment_status == 'paid' else 'danger' }}">
+                                {{ fee.payment_status|title }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if fee.payment_status == 'pending' %}
+                            <button class="btn btn-sm btn-success">Mark Paid</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
             {% else %}
-            <div class="empty-state">
-                <i class="fas fa-receipt"></i>
-                <h3>No Fee Records</h3>
-                <p>No fees have been added for this student yet.</p>
-                <button class="btn btn-primary" onclick="showAddFeeModal()">
-                    <i class="fas fa-plus"></i> Add First Fee
-                </button>
-            </div>
+            <p>No fee records found.</p>
             {% endif %}
         </div>
-    </div>
-    
-    <!-- Installments -->
-    {% if installments %}
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-calendar-alt"></i> Monthly Installments
-            </h3>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Installment #</th>
-                            <th>Fee Type</th>
-                            <th>Amount</th>
-                            <th>Due Date</th>
-                            <th>Paid Date</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for installment in installments %}
-                        <tr {% if installment.is_overdue and installment.status != 'paid' %}class="overdue-row"{% endif %}>
-                            <td>
-                                <div class="installment-number">
-                                    <strong>{{ installment.installment_number }}</strong>
-                                </div>
-                            </td>
-                            <td>{{ installment.main_fee.fee_type|title }}</td>
-                            <td><strong>₹{{ "{:,.0f}".format(installment.amount) }}</strong></td>
-                            <td>{{ installment.due_date.strftime('%B %d, %Y') }}</td>
-                            <td>
-                                {% if installment.paid_date %}
-                                    {{ installment.paid_date.strftime('%B %d, %Y') }}
-                                {% else %}
-                                    <span class="text-muted">Not paid</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if installment.status == 'paid' %}
-                                    <span class="badge badge-success">Paid</span>
-                                {% elif installment.is_overdue %}
-                                    <span class="badge badge-danger">Overdue</span>
-                                {% else %}
-                                    <span class="badge badge-warning">Pending</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if installment.status != 'paid' %}
-                                <div class="btn-group">
-                                    <button class="btn btn-sm btn-success" onclick="payInstallment('{{ installment.id }}', '{{ installment.amount }}', '{{ installment.paid_amount or 0 }}')">
-                                        <i class="fas fa-credit-card"></i> Pay
-                                    </button>
-                                    {% if installment.status == 'partial' %}
-                                    <button class="btn btn-sm btn-warning" onclick="editPayment('{{ installment.id }}', '{{ installment.amount }}', '{{ installment.paid_amount }}')">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                    {% endif %}
-                                </div>
-                                {% else %}
-                                <div class="payment-details">
-                                    <span class="text-success">
-                                        <i class="fas fa-check-circle"></i> Paid
-                                    </span>
-                                    <button class="btn btn-sm btn-outline-secondary" onclick="viewPaymentDetails('{{ installment.id }}')">
-                                        <i class="fas fa-eye"></i> View
-                                    </button>
-                                </div>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-</div>
-
-<!-- Payment Modal -->
-<div class="modal fade" id="paymentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="POST" id="paymentForm">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="paymentModalTitle">Record Payment</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        
+        <div class="col-md-4">
+            <h3>Add New Fee</h3>
+            <form method="POST">
+                <div class="form-group">
+                    <label>Fee Type</label>
+                    <select name="fee_type" class="form-control" required>
+                        <option value="tuition">Tuition</option>
+                        <option value="registration">Registration</option>
+                        <option value="material">Material</option>
+                        <option value="other">Other</option>
+                    </select>
                 </div>
-                <div class="modal-body">
-                    <div class="alert alert-info" id="paymentInfo">
-                        <div class="row">
-                            <div class="col-6"><strong>Total Amount:</strong> <span id="totalAmountInfo">₹0</span></div>
-                            <div class="col-6"><strong>Paid So Far:</strong> <span id="paidAmountInfo">₹0</span></div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-12"><strong>Remaining Balance:</strong> <span id="balanceAmountInfo">₹0</span></div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Payment Amount (₹) *</label>
-                        <input type="number" name="payment_amount" class="form-control" required min="0" step="0.01" id="paymentAmountInput">
-                        <small class="form-text text-muted">Enter the amount being paid now</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Payment Method *</label>
-                        <select name="payment_method" class="form-control" required>
-                            <option value="cash">Cash</option>
-                            <option value="card">Debit/Credit Card</option>
-                            <option value="online">Online Transfer</option>
-                            <option value="upi">UPI Payment</option>
-                            <option value="cheque">Cheque</option>
-                            <option value="dd">Demand Draft</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Transaction ID/Reference</label>
-                        <input type="text" name="transaction_id" class="form-control" placeholder="Optional reference number">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Payment Date</label>
-                        <input type="date" name="payment_date" class="form-control" id="paymentDate">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Notes (Optional)</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Any additional notes about this payment"></textarea>
-                    </div>
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="number" name="amount" class="form-control" step="0.01" required>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-check"></i> <span id="paymentButtonText">Record Payment</span>
-                    </button>
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input type="date" name="due_date" class="form-control" required>
                 </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" class="form-control" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Fee</button>
             </form>
         </div>
     </div>
-</div>
-
-<!-- Payment Details Modal -->
-<div class="modal fade" id="paymentDetailsModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Payment Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="paymentDetailsContent">
-                <!-- Payment details will be loaded here -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
+    
+    <div class="mt-3">
+        <a href="{{ url_for('view_student', id=student.id) }}" class="btn btn-secondary">Back to Student</a>
     </div>
 </div>
-<div class="modal fade" id="addFeeModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-                            <form method="POST" action="{{ url_for('add_student_fee', id=student.id) }}">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New Fee</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label class="form-label">Fee Type</label>
-                        <select name="fee_type" class="form-control" required>
-                            <option value="">Select Fee Type</option>
-                            <option value="tuition">Tuition Fee</option>
-                            <option value="registration">Registration Fee</option>
-                            <option value="material">Material Fee</option>
-                            <option value="exam">Exam Fee</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Description</label>
-                        <input type="text" name="description" class="form-control" placeholder="e.g., Annual Tuition 2024-25">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Total Amount (₹)</label>
-                        <input type="number" name="total_amount" class="form-control" required min="1" step="0.01" 
-                               onchange="calculateInstallments()" id="totalAmount">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Advance Payment (₹)</label>
-                        <input type="number" name="advance_payment" class="form-control" min="0" step="0.01" 
-                               onchange="calculateInstallments()" id="advancePayment" value="0">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Number of Installments</label>
-                        <select name="installment_months" class="form-control" onchange="calculateInstallments()" id="installmentMonths">
-                            <option value="1">One-time Payment</option>
-                            <option value="2">2 Months</option>
-                            <option value="3">3 Months</option>
-                            <option value="6">6 Months</option>
-                            <option value="12">12 Months</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Start Date</label>
-                        <input type="date" name="start_date" class="form-control" required>
-                    </div>
-                    
-                    <div id="installmentPreview" class="mt-3" style="display: none;">
-                        <div class="alert alert-info">
-                            <h6>Payment Plan Preview:</h6>
-                            <div id="previewContent"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Fee</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<style>
-/* Dashboard Container */
-.dashboard-container {
-    padding: 32px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-.dashboard-header {
-    margin-bottom: 32px;
-}
-
-.header-actions {
-    display: flex;
-    gap: 12px;
-}
-
-/* Fee Type Styling */
-.fee-type {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.fee-type i {
-    color: var(--primary-color);
-}
-
-/* Installment Number */
-.installment-number {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: var(--primary-color);
-    color: white;
-    border-radius: 50%;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-/* Overdue Row */
-.overdue-row {
-    background-color: rgba(239, 83, 80, 0.05) !important;
-    border-left: 4px solid var(--danger-color);
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-}
-
-.empty-state i {
-    font-size: 64px;
-    color: var(--text-secondary);
-    margin-bottom: 20px;
-    opacity: 0.5;
-}
-
-.empty-state h3 {
-    color: var(--text-primary);
-    margin-bottom: 12px;
-    font-size: 24px;
-    font-weight: 600;
-}
-
-.empty-state p {
-    color: var(--text-secondary);
-    margin-bottom: 24px;
-    font-size: 16px;
-}
-
-/* Modal Styling */
-.modal {
-    z-index: 1050;
-}
-
-.modal-content {
-    border: none;
-    border-radius: 16px;
-    box-shadow: var(--shadow-lg);
-}
-
-.modal-header {
-    border-bottom: 1px solid var(--border-color);
-    padding: 24px;
-}
-
-.modal-title {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.modal-body {
-    padding: 24px;
-}
-
-.modal-footer {
-    border-top: 1px solid var(--border-color);
-    padding: 20px 24px;
-}
-
-.btn-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 0;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-close:hover {
-    color: var(--text-primary);
-}
-
-/* Payment Details */
-.payment-details {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.btn-group {
-    display: flex;
-    gap: 4px;
-}
-
-.payment-details-info {
-    background: var(--light-color);
-    padding: 16px;
-    border-radius: 8px;
-    margin-top: 12px;
-}
-
-.payment-details-info h6 {
-    color: var(--text-primary);
-    margin-bottom: 12px;
-    font-weight: 600;
-}
-
-.payment-details-info .row {
-    margin-bottom: 8px;
-}
-
-.payment-details-info .row:last-child {
-    margin-bottom: 0;
-}
-
-/* Payment amount input validation */
-.form-control:invalid {
-    border-color: var(--danger-color);
-}
-
-.form-control:invalid:focus {
-    border-color: var(--danger-color);
-    box-shadow: 0 0 0 3px rgba(239, 83, 80, 0.1);
-}
-
-/* Payment status indicators */
-.badge.badge-partial {
-    background-color: rgba(255, 167, 38, 0.1);
-    color: var(--warning-color);
-}
-
-/* Loading spinner */
-.spinner-border {
-    width: 2rem;
-    height: 2rem;
-    border-width: 0.25em;
-    border-color: var(--primary-color);
-    border-right-color: transparent;
-    animation: spinner-border 0.75s linear infinite;
-}
-
-@keyframes spinner-border {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-}
-@media (max-width: 768px) {
-    .dashboard-container {
-        padding: 20px;
-    }
-    
-    .header-actions {
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .table-responsive {
-        font-size: 14px;
-    }
-    
-    .stat-value {
-        font-size: 24px;
-    }
-}
-</style>
-
-<script>
-// Show Add Fee Modal
-function showAddFeeModal() {
-    const modal = new bootstrap.Modal(document.getElementById('addFeeModal'));
-    modal.show();
-}
-
-// Calculate installments preview
-function calculateInstallments() {
-    const totalAmount = parseFloat(document.getElementById('totalAmount').value) || 0;
-    const advancePayment = parseFloat(document.getElementById('advancePayment').value) || 0;
-    const installmentMonths = parseInt(document.getElementById('installmentMonths').value) || 1;
-    
-    const preview = document.getElementById('installmentPreview');
-    const previewContent = document.getElementById('previewContent');
-    
-    if (totalAmount > 0) {
-        const balance = totalAmount - advancePayment;
-        const monthlyAmount = balance / installmentMonths;
-        
-        let html = '<div class="row">';
-        html += `<div class="col-6"><strong>Total Amount:</strong> ₹${totalAmount.toLocaleString()}</div>`;
-        html += `<div class="col-6"><strong>Advance Payment:</strong> ₹${advancePayment.toLocaleString()}</div>`;
-        html += '</div><div class="row mt-2">';
-        html += `<div class="col-6"><strong>Balance Amount:</strong> ₹${balance.toLocaleString()}</div>`;
-        html += `<div class="col-6"><strong>Monthly Amount:</strong> ₹${monthlyAmount.toLocaleString()}</div>`;
-        html += '</div>';
-        
-        previewContent.innerHTML = html;
-        preview.style.display = 'block';
-    } else {
-        preview.style.display = 'none';
-    }
-}
-
-// Pay installment - for new payments
-function payInstallment(installmentId, totalAmount, paidAmount = 0) {
-    const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
-    const form = document.getElementById('paymentForm');
-    const balance = totalAmount - paidAmount;
-    
-    // Update modal title and info
-    document.getElementById('paymentModalTitle').textContent = 'Record Payment';
-    document.getElementById('paymentButtonText').textContent = 'Record Payment';
-    document.getElementById('totalAmountInfo').textContent = `₹${totalAmount.toLocaleString()}`;
-    document.getElementById('paidAmountInfo').textContent = `₹${paidAmount.toLocaleString()}`;
-    document.getElementById('balanceAmountInfo').textContent = `₹${balance.toLocaleString()}`;
-    
-    // Set form action and default amount
-    form.action = `/students/{{ student.id }}/installments/${installmentId}/pay`;
-    document.getElementById('paymentAmountInput').value = balance;
-    document.getElementById('paymentAmountInput').max = balance;
-    
-    modal.show();
-}
-
-// Edit payment - for modifying existing payments
-function editPayment(installmentId, totalAmount, paidAmount) {
-    const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
-    const form = document.getElementById('paymentForm');
-    const balance = totalAmount - paidAmount;
-    
-    // Update modal title and info
-    document.getElementById('paymentModalTitle').textContent = 'Edit Payment';
-    document.getElementById('paymentButtonText').textContent = 'Update Payment';
-    document.getElementById('totalAmountInfo').textContent = `₹${totalAmount.toLocaleString()}`;
-    document.getElementById('paidAmountInfo').textContent = `₹${paidAmount.toLocaleString()}`;
-    document.getElementById('balanceAmountInfo').textContent = `₹${balance.toLocaleString()}`;
-    
-    // Set form action and current paid amount
-    form.action = `/students/{{ student.id }}/installments/${installmentId}/pay`;
-    document.getElementById('paymentAmountInput').value = '';
-    document.getElementById('paymentAmountInput').max = totalAmount;
-    document.getElementById('paymentAmountInput').placeholder = `Add to existing ₹${paidAmount.toLocaleString()}`;
-    
-    modal.show();
-}
-
-// View payment details
-function viewPaymentDetails(installmentId) {
-    // In a real app, you'd fetch this data via AJAX
-    // For now, showing a placeholder
-    const modal = new bootstrap.Modal(document.getElementById('paymentDetailsModal'));
-    const content = document.getElementById('paymentDetailsContent');
-    
-    content.innerHTML = `
-        <div class="text-center">
-            <div class="spinner-border" role="status">
-                <span class="sr-only">Loading...</span>
-            </div>
-            <p class="mt-2">Loading payment details...</p>
-        </div>
-    `;
-    
-    modal.show();
-    
-    // Simulate loading payment details
-    setTimeout(() => {
-        content.innerHTML = `
-            <div class="payment-details-info">
-                <h6>Payment Information</h6>
-                <div class="row">
-                    <div class="col-6"><strong>Installment #:</strong> 1</div>
-                    <div class="col-6"><strong>Amount Paid:</strong> ₹5,000</div>
-                </div>
-                <div class="row mt-2">
-                    <div class="col-6"><strong>Payment Date:</strong> Jan 15, 2025</div>
-                    <div class="col-6"><strong>Method:</strong> UPI</div>
-                </div>
-                <div class="row mt-2">
-                    <div class="col-12"><strong>Transaction ID:</strong> TXN123456789</div>
-                </div>
-                <div class="row mt-2">
-                    <div class="col-12"><strong>Notes:</strong> Monthly tuition fee payment</div>
-                </div>
-            </div>
-        `;
-    }, 1000);
-}
-
-// Initialize form
-document.addEventListener('DOMContentLoaded', function() {
-    // Set default date to today
-    const today = new Date().toISOString().split('T')[0];
-    document.querySelector('input[name="start_date"]').value = today;
-    document.getElementById('paymentDate').value = today;
-    
-    // Add event listeners
-    document.getElementById('totalAmount').addEventListener('input', calculateInstallments);
-    document.getElementById('advancePayment').addEventListener('input', calculateInstallments);
-    document.getElementById('installmentMonths').addEventListener('change', calculateInstallments);
-    
-    // Payment amount validation
-    document.getElementById('paymentAmountInput').addEventListener('input', function() {
-        const maxAmount = parseFloat(this.max) || 0;
-        const currentAmount = parseFloat(this.value) || 0;
-        
-        if (currentAmount > maxAmount) {
-            this.setCustomValidity(`Amount cannot exceed ₹${maxAmount.toLocaleString()}`);
-        } else if (currentAmount <= 0) {
-            this.setCustomValidity('Amount must be greater than 0');
-        } else {
-            this.setCustomValidity('');
-        }
-    });
-});
-</script>
-
 {% endblock %}

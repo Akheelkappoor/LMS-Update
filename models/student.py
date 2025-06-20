@@ -144,3 +144,42 @@ class Parent(db.Model):
     
     def __repr__(self):
         return f'<Parent {self.full_name} ({self.relationship})>'
+    
+def get_custom_fields(self):
+    """Get custom fields from JSON"""
+    import json
+    try:
+        return json.loads(self.custom_fields) if self.custom_fields else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+def set_custom_fields(self, custom_fields):
+    """Set custom fields as JSON"""
+    import json
+    self.custom_fields = json.dumps(custom_fields) if custom_fields else None
+
+def get_uploaded_documents(self):
+    """Get uploaded documents from JSON"""
+    import json
+    try:
+        return json.loads(self.documents_uploaded) if self.documents_uploaded else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+def set_uploaded_documents(self, documents):
+    """Set uploaded documents as JSON"""
+    import json
+    self.documents_uploaded = json.dumps(documents) if documents else None
+
+def get_full_name(self):
+    """Get student's full name"""
+    return f"{self.first_name} {self.last_name}"
+
+def get_age(self):
+    """Calculate student's age"""
+    if not self.date_of_birth:
+        return None
+    
+    from datetime import date
+    today = date.today()
+    return today.year - self.date_of_birth.year - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))

@@ -47,7 +47,7 @@ class User(UserMixin, db.Model):
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     
     # Relationships
-    department = db.relationship('Department', backref='members')
+    department = db.relationship('Department', foreign_keys=[department_id], backref='members')
     creator = db.relationship('User', foreign_keys=[created_by], remote_side=[id])
     
     def set_password(self, password):

@@ -1,688 +1,384 @@
+<!-- 1. REPLACE templates/students/create.html with this complete version -->
+
 {% extends "base.html" %}
 
 {% block title %}Add New Student - LMS{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 bg-gradient-primary text-white">
-                <div class="card-body p-4">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h1 class="h3 mb-2 text-white">
-                                <i class="fas fa-user-plus me-3"></i>
-                                Add New Student
-                            </h1>
-                            <p class="mb-0 opacity-75">Register a new student with complete profile information</p>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <a href="{{ url_for('students') }}" class="btn btn-light">
-                                <i class="fas fa-arrow-left me-2"></i>
-                                Back to Students
-                            </a>
-                        </div>
-                    </div>
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">
+            <i class="fas fa-user-graduate"></i>
+            Register New Student
+        </h1>
+    </div>
+</div>
+
+<div class="student-registration-container">
+    <form method="POST" enctype="multipart/form-data" class="student-form">
+        <!-- Personal Information -->
+        <div class="form-section">
+            <h3><i class="fas fa-user"></i> Personal Information</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label required">First Name</label>
+                    <input type="text" name="first_name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Last Name</label>
+                    <input type="text" name="last_name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Email</label>
+                    <input type="email" name="email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Phone</label>
+                    <input type="tel" name="phone" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date of Birth</label>
+                    <input type="date" name="date_of_birth" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Gender</label>
+                    <select name="gender" class="form-control">
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
                 </div>
             </div>
         </div>
-    </div>
 
-    <form method="POST" enctype="multipart/form-data" class="needs-validation auto-save-form" id="studentForm" novalidate>
-        <div class="row g-4">
-            <!-- Student Information -->
-            <div class="col-lg-8">
-                <!-- Basic Details -->
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-transparent border-0">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-user text-primary me-2"></i>
-                            Student Information
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label required">First Name</label>
-                                <input type="text" name="first_name" class="form-control" required 
-                                       placeholder="Enter first name">
-                                <div class="invalid-feedback">Please provide the student's first name.</div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label class="form-label required">Last Name</label>
-                                <input type="text" name="last_name" class="form-control" required 
-                                       placeholder="Enter last name">
-                                <div class="invalid-feedback">Please provide the student's last name.</div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label class="form-label">Email Address</label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                    <input type="email" name="email" class="form-control" 
-                                           placeholder="student@example.com">
-                                </div>
-                                <div class="form-text">
-                                    <small>Optional for younger students</small>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label class="form-label">Phone Number</label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                                    <input type="tel" name="phone" class="form-control" 
-                                           placeholder="+91 98765 43210">
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <label class="form-label">Date of Birth</label>
-                                <input type="date" name="date_of_birth" class="form-control" id="dateOfBirth">
-                                <div class="form-text">
-                                    <small id="ageDisplay"></small>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <label class="form-label">Gender</label>
-                                <select name="gender" class="form-select">
-                                    <option value="">Select Gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <label class="form-label">Student ID</label>
-                                <div class="input-group">
-                                    <input type="text" name="student_id" class="form-control" readonly 
-                                           placeholder="Auto-generated" id="studentIdField">
-                                    <button type="button" class="btn btn-outline-secondary" onclick="generateStudentId()">
-                                        <i class="fas fa-sync"></i>
-                                    </button>
-                                </div>
-                                <div class="form-text">
-                                    <small>Will be auto-generated if not provided</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <!-- Academic Information -->
+        <div class="form-section">
+            <h3><i class="fas fa-graduation-cap"></i> Academic Information</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label required">Grade/Class</label>
+                    <select name="grade" class="form-control" required>
+                        <option value="">Select Grade</option>
+                        <option value="1st">1st Grade</option>
+                        <option value="2nd">2nd Grade</option>
+                        <option value="3rd">3rd Grade</option>
+                        <option value="4th">4th Grade</option>
+                        <option value="5th">5th Grade</option>
+                        <option value="6th">6th Grade</option>
+                        <option value="7th">7th Grade</option>
+                        <option value="8th">8th Grade</option>
+                        <option value="9th">9th Grade</option>
+                        <option value="10th">10th Grade</option>
+                        <option value="11th">11th Grade</option>
+                        <option value="12th">12th Grade</option>
+                    </select>
                 </div>
-
-                <!-- Academic Information -->
-                <div class="card border-0 shadow-sm mt-4">
-                    <div class="card-header bg-transparent border-0">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-graduation-cap text-success me-2"></i>
-                            Academic Information
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Grade/Class</label>
-                                <select name="grade" class="form-select" id="gradeSelect">
-                                    <option value="">Select Grade</option>
-                                    <option value="Nursery">Nursery</option>
-                                    <option value="LKG">LKG</option>
-                                    <option value="UKG">UKG</option>
-                                    {% for i in range(1, 13) %}
-                                    <option value="Grade {{ i }}">Grade {{ i }}</option>
-                                    {% endfor %}
-                                    <option value="11th">11th</option>
-                                    <option value="12th">12th</option>
-                                    <option value="Undergraduate">Undergraduate</option>
-                                    <option value="Postgraduate">Postgraduate</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <label class="form-label">School/Institution</label>
-                                <input type="text" name="school" class="form-control" 
-                                       placeholder="Enter school name">
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <label class="form-label">Board</label>
-                                <select name="board" class="form-select">
-                                    <option value="">Select Board</option>
-                                    <option value="CBSE">CBSE</option>
-                                    <option value="ICSE">ICSE</option>
-                                    <option value="State Board">State Board</option>
-                                    <option value="IB">International Baccalaureate (IB)</option>
-                                    <option value="Cambridge">Cambridge</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label class="form-label">Department</label>
-                                <select name="department_id" class="form-select">
-                                    <option value="">Select Department</option>
-                                    {% for dept in departments %}
-                                    <option value="{{ dept.id }}">{{ dept.name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <div class="form-text">
-                                    <small>Choose the appropriate department for this student</small>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <label class="form-label">Learning Goals</label>
-                                <textarea name="custom_learning_goals" class="form-control" rows="2" 
-                                          placeholder="Describe student's learning objectives..."></textarea>
-                            </div>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label required">School Name</label>
+                    <input type="text" name="school" class="form-control" required>
                 </div>
-
-                <!-- Address Information -->
-                <div class="card border-0 shadow-sm mt-4">
-                    <div class="card-header bg-transparent border-0">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-map-marker-alt text-info me-2"></i>
-                            Address Information
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label">Address Line 1</label>
-                                <input type="text" name="address_line1" class="form-control" 
-                                       placeholder="House number, street name">
-                            </div>
-                            
-                            <div class="col-12">
-                                <label class="form-label">Address Line 2</label>
-                                <input type="text" name="address_line2" class="form-control" 
-                                       placeholder="Landmark, area (optional)">
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <label class="form-label">City</label>
-                                <input type="text" name="city" class="form-control" 
-                                       placeholder="Enter city">
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <label class="form-label">State</label>
-                                <input type="text" name="state" class="form-control" 
-                                       placeholder="Enter state">
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <label class="form-label">Pincode</label>
-                                <input type="text" name="pincode" class="form-control" 
-                                       placeholder="6-digit pincode" pattern="[0-9]{6}">
-                            </div>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Educational Board</label>
+                    <select name="board" class="form-control">
+                        <option value="">Select Board</option>
+                        <option value="cbse">CBSE</option>
+                        <option value="icse">ICSE</option>
+                        <option value="state">State Board</option>
+                        <option value="igcse">IGCSE</option>
+                        <option value="ib">IB</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Department</label>
+                    <select name="department_id" class="form-control" required id="studentDepartment">
+                        <option value="">Select Department</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }} ({{ dept.code }})</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
-            
-            <!-- Right Sidebar -->
-            <div class="col-lg-4">
-                <!-- Profile Picture -->
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-transparent border-0">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-camera text-warning me-2"></i>
-                            Profile Picture
-                        </h5>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="profile-upload mb-3">
-                            <div class="avatar-preview bg-light rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" 
-                                 style="width: 120px; height: 120px; border: 2px dashed #dee2e6; cursor: pointer;" 
-                                 onclick="document.getElementById('profilePicture').click();">
-                                <i class="fas fa-camera fa-2x text-muted" id="avatarPreview"></i>
-                            </div>
-                            <input type="file" name="profile_picture" class="form-control" accept="image/*" 
-                                   id="profilePicture" style="display: none;">
-                            <div class="form-text">
-                                <small>Click to upload photo (JPG, PNG, GIF - Max: 2MB)</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        </div>
 
-                <!-- Quick Enrollment -->
-                <div class="card border-0 shadow-sm mt-4">
-                    <div class="card-header bg-transparent border-0">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-rocket text-danger me-2"></i>
-                            Quick Actions
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="enrollAfterCreation" name="enroll_after_creation">
-                            <label class="form-check-label" for="enrollAfterCreation">
-                                Enroll student immediately after creation
-                            </label>
-                        </div>
-                        
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="addParentInfo" name="add_parent_info">
-                            <label class="form-check-label" for="addParentInfo">
-                                Add parent/guardian information
-                            </label>
-                        </div>
-                        
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="sendWelcomeEmail" name="send_welcome_email">
-                            <label class="form-check-label" for="sendWelcomeEmail">
-                                Send welcome email to student
-                            </label>
-                        </div>
-                    </div>
-                </div>
+        <!-- Department-Specific Form (Dynamic) -->
+        <div id="departmentDynamicForm" class="form-section" style="display: none;">
+            <!-- Dynamic form fields will be loaded here -->
+        </div>
 
-                <!-- Form Progress -->
-                <div class="card border-0 shadow-sm mt-4">
-                    <div class="card-header bg-transparent border-0">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-tasks text-success me-2"></i>
-                            Form Progress
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="progress mb-3" style="height: 10px;">
-                            <div class="progress-bar bg-success" id="formProgress" style="width: 0%"></div>
-                        </div>
-                        <ul class="list-unstyled mb-0" id="progressChecklist">
-                            <li class="mb-2">
-                                <i class="fas fa-circle text-muted me-2" id="basicInfo"></i>
-                                <small>Basic Information</small>
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-circle text-muted me-2" id="academicInfo"></i>
-                                <small>Academic Details</small>
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-circle text-muted me-2" id="addressInfo"></i>
-                                <small>Address Information</small>
-                            </li>
-                            <li>
-                                <i class="fas fa-circle text-muted me-2" id="profilePic"></i>
-                                <small>Profile Picture</small>
-                            </li>
-                        </ul>
-                    </div>
+        <!-- Address Information -->
+        <div class="form-section">
+            <h3><i class="fas fa-map-marker-alt"></i> Address Information</h3>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label class="form-label">Address Line 1</label>
+                    <input type="text" name="address_line1" class="form-control">
+                </div>
+                <div class="form-group full-width">
+                    <label class="form-label">Address Line 2</label>
+                    <input type="text" name="address_line2" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">City</label>
+                    <input type="text" name="city" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">State</label>
+                    <input type="text" name="state" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Pincode</label>
+                    <input type="text" name="pincode" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Country</label>
+                    <input type="text" name="country" class="form-control" value="India">
                 </div>
             </div>
-            
-            <!-- Parent/Guardian Information (Conditional) -->
-            <div class="col-12" id="parentSection" style="display: none;">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-users text-purple me-2"></i>
-                            Parent/Guardian Information
-                        </h5>
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addParent()">
-                            <i class="fas fa-plus me-1"></i>
-                            Add Another Parent
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="parentsContainer">
-                            <!-- Parent forms will be added here dynamically -->
-                        </div>
-                    </div>
+        </div>
+
+        <!-- Documents -->
+        <div class="form-section">
+            <h3><i class="fas fa-file"></i> Documents</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Profile Picture</label>
+                    <input type="file" name="profile_picture" class="form-control" accept=".jpg,.jpeg,.png">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">ID Proof</label>
+                    <input type="file" name="id_proof" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Academic Records</label>
+                    <input type="file" name="academic_records" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
                 </div>
             </div>
-            
-            <!-- Submit Actions -->
-            <div class="col-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <div class="d-flex align-items-center gap-3">
-                                    <i class="fas fa-info-circle text-info"></i>
-                                    <div>
-                                        <small class="text-muted">
-                                            <strong>Note:</strong> Required fields are marked with an asterisk (*). 
-                                            Form data is automatically saved as you type.
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4 text-end">
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-outline-secondary" onclick="saveDraft()">
-                                        <i class="fas fa-save me-1"></i>
-                                        Save Draft
-                                    </button>
-                                    <a href="{{ url_for('students') }}" class="btn btn-outline-secondary">
-                                        <i class="fas fa-times me-1"></i>
-                                        Cancel
-                                    </a>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-user-plus me-1"></i>
-                                        Create Student
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-check"></i>
+                Register Student
+            </button>
+            <a href="{{ url_for('students') }}" class="btn btn-secondary">
+                Cancel
+            </a>
         </div>
     </form>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentSelect = document.getElementById('studentDepartment');
+    let dynamicFormContainer = document.getElementById('departmentDynamicForm');
+    
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', function() {
+            const departmentId = this.value;
+            
+            if (departmentId) {
+                loadStudentDepartmentForm(departmentId);
+            } else {
+                clearDynamicForm();
+            }
+        });
+    }
+    
+    function loadStudentDepartmentForm(departmentId) {
+        if (!dynamicFormContainer) return;
+        
+        // Show loading
+        dynamicFormContainer.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                <p class="mt-2">Loading department form...</p>
+            </div>
+        `;
+        dynamicFormContainer.style.display = 'block';
+        
+        // Fetch student form for this department
+        fetch(`/api/departments/${departmentId}/form?type=student`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('No form assigned');
+                }
+                return response.json();
+            })
+            .then(data => {
+                renderStudentForm(data.form);
+            })
+            .catch(error => {
+                console.log('No department form found');
+                clearDynamicForm();
+            });
+    }
+    
+    function renderStudentForm(form) {
+        if (!dynamicFormContainer || !form.fields || form.fields.length === 0) {
+            clearDynamicForm();
+            return;
+        }
+        
+        let fieldsHTML = '';
+        
+        form.fields.forEach(field => {
+            fieldsHTML += generateStudentFieldHTML(field);
+        });
+        
+        dynamicFormContainer.innerHTML = `
+            <h3><i class="fas fa-building"></i> ${form.name}</h3>
+            ${form.description ? `<p class="text-muted">${form.description}</p>` : ''}
+            <div class="form-grid">
+                ${fieldsHTML}
+            </div>
+        `;
+        
+        dynamicFormContainer.style.display = 'block';
+    }
+    
+    function generateStudentFieldHTML(field) {
+        const required = field.required ? 'required' : '';
+        const requiredLabel = field.required ? '<span class="text-danger">*</span>' : '';
+        
+        let inputHTML = '';
+        
+        switch(field.type) {
+            case 'text':
+            case 'email':
+            case 'tel':
+            case 'url':
+                inputHTML = `<input type="${field.type}" name="custom_${field.name}" class="form-control" ${required}>`;
+                break;
+                
+            case 'number':
+                inputHTML = `<input type="number" name="custom_${field.name}" class="form-control" ${required}>`;
+                break;
+                
+            case 'date':
+                inputHTML = `<input type="date" name="custom_${field.name}" class="form-control" ${required}>`;
+                break;
+                
+            case 'textarea':
+                inputHTML = `<textarea name="custom_${field.name}" class="form-control" rows="3" ${required}></textarea>`;
+                break;
+                
+            case 'select':
+                let options = '<option value="">Select...</option>';
+                if (field.options) {
+                    field.options.forEach(option => {
+                        options += `<option value="${option}">${option}</option>`;
+                    });
+                }
+                inputHTML = `<select name="custom_${field.name}" class="form-control" ${required}>${options}</select>`;
+                break;
+                
+            case 'radio':
+                if (field.options) {
+                    field.options.forEach(option => {
+                        inputHTML += `
+                            <div class="form-check">
+                                <input type="radio" name="custom_${field.name}" value="${option}" class="form-check-input" ${required}>
+                                <label class="form-check-label">${option}</label>
+                            </div>
+                        `;
+                    });
+                }
+                break;
+                
+            case 'checkbox':
+                if (field.options) {
+                    field.options.forEach(option => {
+                        inputHTML += `
+                            <div class="form-check">
+                                <input type="checkbox" name="custom_${field.name}[]" value="${option}" class="form-check-input">
+                                <label class="form-check-label">${option}</label>
+                            </div>
+                        `;
+                    });
+                }
+                break;
+                
+            case 'file':
+                inputHTML = `<input type="file" name="custom_file_${field.name}" class="form-control" ${required}>`;
+                break;
+        }
+        
+        return `
+            <div class="form-group">
+                <label class="form-label">${field.label} ${requiredLabel}</label>
+                ${inputHTML}
+                ${field.description ? `<small class="form-text text-muted">${field.description}</small>` : ''}
+            </div>
+        `;
+    }
+    
+    function clearDynamicForm() {
+        if (dynamicFormContainer) {
+            dynamicFormContainer.style.display = 'none';
+            dynamicFormContainer.innerHTML = '';
+        }
+    }
+});
+</script>
+
 <style>
-.bg-gradient-primary {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)) !important;
+.student-registration-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px;
 }
 
-.required::after {
-    content: " *";
-    color: #dc3545;
-}
-
-.avatar-preview {
-    transition: all 0.3s ease;
-    position: relative;
+.student-form {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     overflow: hidden;
 }
 
-.avatar-preview:hover {
-    border-color: var(--primary-color) !important;
-    transform: scale(1.05);
+.form-section {
+    padding: 32px;
+    border-bottom: 1px solid #e9ecef;
 }
 
-.avatar-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.form-section:last-child {
+    border-bottom: none;
 }
 
-.card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+.form-section h3 {
+    color: #333;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+.form-section h3 i {
+    color: #F1A150;
 }
 
-.form-control:focus,
-.form-select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(241, 161, 80, 0.25);
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
 }
 
-.progress {
-    background-color: rgba(0,0,0,0.1);
+.form-group.full-width {
+    grid-column: 1 / -1;
 }
 
-.text-purple {
-    color: #6f42c1 !important;
-}
-
-.parent-entry {
-    border: 1px solid #e9ecef;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
+.form-actions {
+    padding: 32px;
     background: #f8f9fa;
+    display: flex;
+    gap: 16px;
+    justify-content: center;
 }
 
-.parent-entry:last-child {
-    margin-bottom: 0;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.parent-entry {
-    animation: slideDown 0.5s ease-out;
+.required {
+    color: #dc3545;
 }
 </style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('studentForm');
-    const addParentCheckbox = document.getElementById('addParentInfo');
-    const parentSection = document.getElementById('parentSection');
-    const profilePictureInput = document.getElementById('profilePicture');
-    const avatarPreview = document.getElementById('avatarPreview');
-    const dateOfBirthInput = document.getElementById('dateOfBirth');
-    const ageDisplay = document.getElementById('ageDisplay');
-    
-    // Auto-generate student ID
-    generateStudentId();
-    
-    // Handle parent section toggle
-    addParentCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            parentSection.style.display = 'block';
-            addParent(); // Add first parent form
-        } else {
-            parentSection.style.display = 'none';
-            document.getElementById('parentsContainer').innerHTML = '';
-        }
-        updateFormProgress();
-    });
-    
-    // Handle profile picture preview
-    profilePictureInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            if (file.size > 2 * 1024 * 1024) { // 2MB limit
-                LMS.showAlert('File size must be less than 2MB', 'warning');
-                this.value = '';
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                avatarPreview.outerHTML = `<img src="${e.target.result}" alt="Profile Preview" id="avatarPreview">`;
-            };
-            reader.readAsDataURL(file);
-        }
-        updateFormProgress();
-    });
-    
-    // Calculate age from date of birth
-    dateOfBirthInput.addEventListener('change', function() {
-        if (this.value) {
-            const birthDate = new Date(this.value);
-            const today = new Date();
-            let age = today.getFullYear() - birthDate.getFullYear();
-            const monthDiff = today.getMonth() - birthDate.getMonth();
-            
-            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                age--;
-            }
-            
-            ageDisplay.textContent = `Age: ${age} years`;
-        } else {
-            ageDisplay.textContent = '';
-        }
-        updateFormProgress();
-    });
-    
-    // Form validation
-    form.addEventListener('submit', function(event) {
-        if (!form.checkValidity()) {
-            event.preventDefault();
-            event.stopPropagation();
-            LMS.showAlert('Please fill in all required fields correctly.', 'warning');
-        }
-        
-        form.classList.add('was-validated');
-    }, false);
-    
-    // Track form progress
-    const requiredFields = form.querySelectorAll('[required]');
-    requiredFields.forEach(field => {
-        field.addEventListener('input', updateFormProgress);
-        field.addEventListener('change', updateFormProgress);
-    });
-    
-    // Initial progress update
-    updateFormProgress();
-});
-
-let parentCount = 0;
-
-function addParent() {
-    parentCount++;
-    const container = document.getElementById('parentsContainer');
-    
-    const parentDiv = document.createElement('div');
-    parentDiv.className = 'parent-entry';
-    parentDiv.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="mb-0">Parent/Guardian ${parentCount}</h6>
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeParent(this)">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label class="form-label">First Name</label>
-                <input type="text" name="parent_${parentCount}_first_name" class="form-control" 
-                       placeholder="Enter first name">
-            </div>
-            
-            <div class="col-md-6">
-                <label class="form-label">Last Name</label>
-                <input type="text" name="parent_${parentCount}_last_name" class="form-control" 
-                       placeholder="Enter last name">
-            </div>
-            
-            <div class="col-md-6">
-                <label class="form-label">Relationship</label>
-                <select name="parent_${parentCount}_relationship" class="form-select">
-                    <option value="">Select Relationship</option>
-                    <option value="father">Father</option>
-                    <option value="mother">Mother</option>
-                    <option value="guardian">Guardian</option>
-                    <option value="grandfather">Grandfather</option>
-                    <option value="grandmother">Grandmother</option>
-                    <option value="uncle">Uncle</option>
-                    <option value="aunt">Aunt</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-            
-            <div class="col-md-6">
-                <label class="form-label">Phone Number</label>
-                <input type="tel" name="parent_${parentCount}_phone" class="form-control" 
-                       placeholder="+91 98765 43210">
-            </div>
-            
-            <div class="col-md-6">
-                <label class="form-label">Email Address</label>
-                <input type="email" name="parent_${parentCount}_email" class="form-control" 
-                       placeholder="parent@example.com">
-            </div>
-            
-            <div class="col-md-6">
-                <label class="form-label">Occupation</label>
-                <input type="text" name="parent_${parentCount}_occupation" class="form-control" 
-                       placeholder="Enter occupation">
-            </div>
-            
-            <div class="col-12">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" 
-                                   name="parent_${parentCount}_is_primary" value="1">
-                            <label class="form-check-label">
-                                Primary Contact
-                            </label>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" 
-                                   name="parent_${parentCount}_is_emergency" value="1">
-                            <label class="form-check-label">
-                                Emergency Contact
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    container.appendChild(parentDiv);
-    updateFormProgress();
-}
-
-function removeParent(button) {
-    button.closest('.parent-entry').remove();
-    updateFormProgress();
-}
-
-function generateStudentId() {
-    const prefix = 'STU';
-    const timestamp = Date.now().toString().slice(-6);
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    const studentId = prefix + timestamp + random;
-    
-    document.getElementById('studentIdField').value = studentId;
-}
-
-function updateFormProgress() {
-    const form = document.getElementById('studentForm');
-    const progressBar = document.getElementById('formProgress');
-    const progressItems = {
-        basicInfo: ['first_name', 'last_name'],
-        academicInfo: ['grade'],
-        addressInfo: ['city', 'state'],
-        profilePic: ['profile_picture']
-    };
-    
-    let completedSections = 0;
-    const totalSections = Object.keys(progressItems).length;
-    
-    for (const [sectionId, fields] of Object.entries(progressItems)) {
-        const sectionComplete = fields.some(fieldName => {
-            const field = form.querySelector(`[name="${fieldName}"]`);
-            return field && field.value.trim() !== '';
-        });
-        
-        const icon = document.getElementById(sectionId);
-        if (sectionComplete) {
-            icon.className = 'fas fa-check-circle text-success me-2';
-            completedSections++;
-        } else {
-            icon.className = 'fas fa-circle text-muted me-2';
-        }
-    }
-    
-    const progressPercentage = Math.round((completedSections / totalSections) * 100);
-    progressBar.style.width = progressPercentage + '%';
-    progressBar.textContent = progressPercentage + '%';
-}
-
-function saveDraft() {
-    LMS.showAlert('Draft saved successfully!', 'success');
-    // Here you could implement actual draft saving functionality
-}
-</script>
 {% endblock %}

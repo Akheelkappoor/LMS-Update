@@ -6,82 +6,61 @@ from datetime import datetime, date
 from .helpers import generate_student_id
 
 def create_student(student_data):
-    """Create a new student"""
+    """Create a new student with custom fields support"""
     try:
-        # Generate unique student ID if not provided
-        student_id = student_data.get('student_id') or generate_student_id()
+        from models import Student, db
+        from datetime import datetime
+        import json
         
-        # Handle date of birth conversion
-        date_of_birth = None
-        if student_data.get('date_of_birth') and student_data['date_of_birth'].strip():
-            try:
-                date_of_birth = datetime.strptime(student_data['date_of_birth'], '%Y-%m-%d').date()
-            except ValueError:
-                pass  # Leave as None if invalid date
+        # Check if student already exists
+        if Student.query.filter_by(email=student_data['email']).first():
+            return None, "Student with this email already exists."
         
-        # Convert empty strings to None for optional fields
-        def clean_field(value):
-            return value.strip() if value and value.strip() else None
+        # Generate unique student ID
+        student_id = generate_student_id()
         
-        # Convert department_id to int or None
-        department_id = student_data.get('department_id')
-        if department_id and department_id.strip() and department_id != '':
-            try:
-                department_id = int(department_id)
-            except ValueError:
-                department_id = None
-        else:
-            department_id = None
-        
+        # Create new student
         student = Student(
             student_id=student_id,
-            first_name=student_data['first_name'].strip(),
-            last_name=student_data['last_name'].strip(),
-            email=clean_field(student_data.get('email')),
-            phone=clean_field(student_data.get('phone')),
-            date_of_birth=date_of_birth,
-            gender=clean_field(student_data.get('gender')),
-            grade=clean_field(student_data.get('grade')),
-            school=clean_field(student_data.get('school')),
-            board=clean_field(student_data.get('board')),
-            address_line1=clean_field(student_data.get('address_line1')),
-            address_line2=clean_field(student_data.get('address_line2')),
-            city=clean_field(student_data.get('city')),
-            state=clean_field(student_data.get('state')),
-            pincode=clean_field(student_data.get('pincode')),
-            department_id=department_id,
-            created_by=current_user.id
+            first_name=student_data['first_name'],
+            last_name=student_data['last_name'],
+            email=student_data.get('email'),
+            phone=student_data.get('phone'),
+            date_of_birth=parse_date(student_data.get('date_of_birth')),
+            gender=student_data.get('gender'),
+            grade=student_data.get('grade'),
+            school=student_data.get('school'),
+            board=student_data.get('board'),
+            address_line1=student_data.get('address_line1'),
+            address_line2=student_data.get('address_line2'),
+            city=student_data.get('city'),
+            state=student_data.get('state'),
+            pincode=student_data.get('pincode'),
+            country=student_data.get('country', 'India'),
+            department_id=student_data.get('department_id'),
+            status=student_data.get('status', 'active'),
+            created_by=student_data.get('created_by')
         )
         
-        # Set custom fields (only non-empty ones)
-        custom_fields = {}
-        for key, value in student_data.items():
-            if key.startswith('custom_') and value and value.strip():
-                custom_fields[key] = value.strip()
+        # Set custom fields if provided
+        if 'custom_fields' in student_data:
+            student.custom_fields = json.dumps(student_data['custom_fields'])
         
-        if custom_fields:
-            student.set_custom_fields(custom_fields)
+        # Set uploaded files if provided
+        if 'uploaded_files' in student_data:
+            student.documents_uploaded = json.dumps(student_data['uploaded_files'])
+        
+        # Set profile picture if uploaded
+        if 'uploaded_files' in student_data and 'profile_picture' in student_data['uploaded_files']:
+            student.profile_picture_path = student_data['uploaded_files']['profile_picture']
         
         db.session.add(student)
-        db.session.flush()  # Get student ID
-        
-        # Create parent records if provided
-        parents_created = []
-        parent_count = 1
-        while f'parent_{parent_count}_first_name' in student_data:
-            parent_data = extract_parent_data(student_data, parent_count)
-            if parent_data.get('first_name') and parent_data['first_name'].strip():
-                parent = create_parent(student.id, parent_data)
-                if parent:
-                    parents_created.append(parent)
-            parent_count += 1
-        
         db.session.commit()
-        return student, parents_created
+        
+        return student, "Student created successfully."
         
     except Exception as e:
         db.session.rollback()
-        print(f"Error creating student: {str(e)}")  # For debugging
         return None, f"Student creation failed: {str(e)}"
 
 def extract_parent_data(form_data, parent_number):
@@ -272,22 +251,32 @@ def get_students_by_tutor(tutor_id):
     return [enrollment.student for enrollment in enrollments]
 
 def get_students_by_department(department_id):
-    """Get all students in a department"""
-    return Student.query.filter_by(
-        department_id=department_id, 
-        status='active'
-    ).all()
+    """Get students by department"""
+    try:
+        return Student.query.filter_by(
+            department_id=department_id, 
+            status='active'
+        ).all()
+    except Exception as e:
+        print(f"Error getting students by department: {str(e)}")
+        return []
 
 def search_students(search_term):
-    """Search students by name, email, or student ID"""
-    return Student.query.filter(
-        db.or_(
-            Student.first_name.contains(search_term),
-            Student.last_name.contains(search_term),
-            Student.email.contains(search_term),
-            Student.student_id.contains(search_term)
-        )
-    ).filter_by(status='active').all()
+    """Search students by name or student ID"""
+    try:
+        search_pattern = f"%{search_term}%"
+        return Student.query.filter(
+            db.or_(
+                Student.first_name.ilike(search_pattern),
+                Student.last_name.ilike(search_pattern),
+                Student.student_id.ilike(search_pattern),
+                Student.email.ilike(search_pattern)
+            ),
+            Student.status == 'active'
+        ).all()
+    except Exception as e:
+        print(f"Error searching students: {str(e)}")
+        return []
 
 def get_student_enrollments(student_id):
     """Get all enrollments for a student"""
@@ -394,3 +383,169 @@ def promote_students(student_ids, new_grade):
     except Exception as e:
         db.session.rollback()
         return False, f"Promotion failed: {str(e)}"
+    
+
+def generate_student_id():
+    """Generate unique student ID"""
+    from models import Student
+    from datetime import datetime
+    import random
+    
+    # Format: STU + YEAR + RANDOM_NUMBER
+    year = datetime.now().year
+    while True:
+        random_num = random.randint(1000, 9999)
+        student_id = f"STU{year}{random_num}"
+        
+        # Check if ID already exists
+        if not Student.query.filter_by(student_id=student_id).first():
+            return student_id
+
+def parse_date(date_string):
+    """Parse date string to date object"""
+    if not date_string:
+        return None
+    
+    try:
+        from datetime import datetime
+        return datetime.strptime(date_string, '%Y-%m-%d').date()
+    except:
+        return None
+
+def get_student_dashboard_data(student):
+    """Get dashboard data for student"""
+    try:
+        # Basic student stats
+        data = {
+            'total_classes': 0,
+            'completed_classes': 0,
+            'upcoming_classes': 0,
+            'pending_fees': 0.0,
+            'assignments_pending': 0,
+            'recent_activities': []
+        }
+        
+        # You can extend this with actual enrollment and class data
+        return data
+        
+    except Exception as e:
+        print(f"Error getting student dashboard data: {str(e)}")
+        return {}
+    
+def get_all_students(filters=None):
+    """Get all students with optional filters"""
+    try:
+        from models import Student, Department, db
+        
+        query = Student.query.join(Department, Student.department_id == Department.id, isouter=True)
+        
+        if filters:
+            if filters.get('search'):
+                search_pattern = f"%{filters['search']}%"
+                query = query.filter(
+                    db.or_(
+                        Student.first_name.ilike(search_pattern),
+                        Student.last_name.ilike(search_pattern),
+                        Student.email.ilike(search_pattern),
+                        Student.student_id.ilike(search_pattern)
+                    )
+                )
+            
+            if filters.get('grade'):
+                query = query.filter(Student.grade == filters['grade'])
+            
+            if filters.get('status'):
+                query = query.filter(Student.status == filters['status'])
+            
+            if filters.get('department_id'):
+                query = query.filter(Student.department_id == filters['department_id'])
+        
+        return query.order_by(Student.first_name, Student.last_name).all()
+        
+    except Exception as e:
+        print(f"Error getting students: {str(e)}")
+        return []
+
+def update_student(student_id, student_data):
+    """Update student information"""
+    try:
+        from models import Student, db
+        
+        student = Student.query.get(student_id)
+        if not student:
+            return False, "Student not found."
+        
+        # Update basic fields
+        for field, value in student_data.items():
+            if hasattr(student, field) and value is not None:
+                setattr(student, field, value)
+        
+        student.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return True, "Student updated successfully."
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Error updating student: {str(e)}"
+
+def delete_student(student_id):
+    """Soft delete student (mark as inactive)"""
+    try:
+        from models import Student, db
+        
+        student = Student.query.get(student_id)
+        if not student:
+            return False, "Student not found."
+        
+        student.status = 'inactive'
+        student.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return True, "Student deactivated successfully."
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Error deactivating student: {str(e)}"
+    
+# UPDATE functions/student_functions.py to add enrollment function:
+
+def create_student_enrollment(enrollment_data):
+    """Create a new student enrollment"""
+    try:
+        from models import StudentEnrollment, db
+        from datetime import datetime
+        
+        # Check if enrollment already exists
+        existing = StudentEnrollment.query.filter_by(
+            student_id=enrollment_data['student_id'],
+            subject=enrollment_data['subject'],
+            status='active'
+        ).first()
+        
+        if existing:
+            return False, f"Student is already enrolled in {enrollment_data['subject']}"
+        
+        # Create new enrollment
+        enrollment = StudentEnrollment(
+            student_id=enrollment_data['student_id'],
+            subject=enrollment_data['subject'],
+            tutor_id=enrollment_data.get('tutor_id'),
+            hourly_rate=enrollment_data.get('hourly_rate', 0),
+            enrollment_date=enrollment_data.get('enrollment_date', datetime.now().date()),
+            preferred_schedule=enrollment_data.get('preferred_schedule'),
+            classes_per_week=enrollment_data.get('frequency', 2),
+            status=enrollment_data.get('status', 'active'),
+            created_at=datetime.utcnow()
+        )
+        
+        db.session.add(enrollment)
+        db.session.commit()
+        
+        return True, "Student enrolled successfully!"
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Enrollment failed: {str(e)}"
+
+

@@ -1,618 +1,352 @@
 {% extends "base.html" %}
 
-{% block title %}{{ student.full_name }} - Student Profile{% endblock %}
+{% block title %}{{ student.first_name }} {{ student.last_name }} - Student Details{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <!-- Student Profile Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 bg-gradient-info text-white">
-                <div class="card-body p-4">
-                    <div class="row align-items-center">
-                        <div class="col-md-2">
-                            <div class="student-avatar">
-                                {% if student.profile_picture %}
-                                    <img src="{{ url_for('static', filename='uploads/' + student.profile_picture) }}" alt="Student Photo" class="rounded-circle">
-                                {% else %}
-                                    <div class="avatar-placeholder">
-                                        <i class="fas fa-user-graduate fa-3x"></i>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-7">
-                            <h1 class="h3 mb-2 text-white">
-                                <i class="fas fa-user-graduate me-3"></i>
-                                {{ student.full_name }}
-                            </h1>
-                            <p class="mb-1 opacity-75">
-                                <strong>Student ID:</strong> {{ student.student_id }}
-                                {% if student.grade %} | <strong>Grade:</strong> {{ student.grade }}{% endif %}
-                                {% if student.school %} | <strong>School:</strong> {{ student.school }}{% endif %}
-                            </p>
-                            <div class="d-flex gap-2 mt-2">
-                                <span class="badge bg-light text-dark">
-                                    <i class="fas fa-calendar me-1"></i>
-                                    {% if student.age %}{{ student.age }} years old{% else %}Age not specified{% endif %}
-                                </span>
-                                <span class="badge bg-{{ 'success' if student.status == 'active' else 'warning' }}">
-                                    <i class="fas fa-circle me-1"></i>
-                                    {{ student.status|title }}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="col-md-3 text-end">
-                            <div class="btn-group-vertical d-grid gap-2">
-                                {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
-                                <a href="{{ url_for('edit_student', id=student.id) }}" class="btn btn-light btn-sm">
-                                    <i class="fas fa-edit me-1"></i> Edit Profile
-                                </a>
-                                <a href="{{ url_for('enroll_student_route', id=student.id) }}" class="btn btn-outline-light btn-sm">
-                                    <i class="fas fa-plus me-1"></i> New Enrollment
-                                </a>
-                                {% endif %}
-                                <a href="{{ url_for('students') }}" class="btn btn-outline-light btn-sm">
-                                    <i class="fas fa-arrow-left me-1"></i> Back to List
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">
+                <i class="fas fa-user-graduate"></i>
+                {{ student.first_name }} {{ student.last_name }}
+            </h1>
+            <div class="header-actions">
+                <a href="{{ url_for('students') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Students
+                </a>
+                {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
+                <a href="{{ url_for('edit_student', id=student.id) }}" class="btn btn-primary">
+                    <i class="fas fa-edit"></i>
+                    Edit Student
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Student Information Grid -->
-    <div class="row g-4 mb-4">
-        <!-- Personal Information -->
-        <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-transparent border-0 pb-0">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-user text-primary me-2"></i>
-                        Personal Information
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-sm-6">
-                            <div class="info-item">
-                                <label class="text-muted small">Full Name</label>
-                                <div class="fw-bold">{{ student.full_name }}</div>
-                            </div>
+    <div class="student-details-container">
+        <div class="row">
+            <!-- Basic Information -->
+            <div class="col-md-6">
+                <div class="info-card">
+                    <h3 class="card-title">
+                        <i class="fas fa-user"></i>
+                        Basic Information
+                    </h3>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">Student ID:</span>
+                            <span class="info-value">{{ student.student_id }}</span>
                         </div>
-                        <div class="col-sm-6">
-                            <div class="info-item">
-                                <label class="text-muted small">Student ID</label>
-                                <div class="fw-bold text-primary">{{ student.student_id }}</div>
-                            </div>
+                        <div class="info-item">
+                            <span class="info-label">Full Name:</span>
+                            <span class="info-value">{{ student.first_name }} {{ student.last_name }}</span>
                         </div>
-                        <div class="col-sm-6">
-                            <div class="info-item">
-                                <label class="text-muted small">Date of Birth</label>
-                                <div class="fw-bold">
-                                    {{ student.date_of_birth.strftime('%B %d, %Y') if student.date_of_birth else 'Not specified' }}
-                                </div>
-                            </div>
+                        <div class="info-item">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value">{{ student.email or 'Not provided' }}</span>
                         </div>
-                        <div class="col-sm-6">
-                            <div class="info-item">
-                                <label class="text-muted small">Gender</label>
-                                <div class="fw-bold">{{ student.gender|title if student.gender else 'Not specified' }}</div>
-                            </div>
+                        <div class="info-item">
+                            <span class="info-label">Phone:</span>
+                            <span class="info-value">{{ student.phone or 'Not provided' }}</span>
                         </div>
-                        <div class="col-sm-6">
-                            <div class="info-item">
-                                <label class="text-muted small">Email</label>
-                                <div class="fw-bold">
-                                    {% if student.email %}
-                                        <a href="mailto:{{ student.email }}" class="text-decoration-none">
-                                            <i class="fas fa-envelope me-1"></i>{{ student.email }}
-                                        </a>
-                                    {% else %}
-                                        Not provided
-                                    {% endif %}
-                                </div>
-                            </div>
+                        <div class="info-item">
+                            <span class="info-label">Date of Birth:</span>
+                            <span class="info-value">{{ student.date_of_birth.strftime('%B %d, %Y') if student.date_of_birth else 'Not provided' }}</span>
                         </div>
-                        <div class="col-sm-6">
-                            <div class="info-item">
-                                <label class="text-muted small">Phone</label>
-                                <div class="fw-bold">
-                                    {% if student.phone %}
-                                        <a href="tel:{{ student.phone }}" class="text-decoration-none">
-                                            <i class="fas fa-phone me-1"></i>{{ student.phone }}
-                                        </a>
-                                    {% else %}
-                                        Not provided
-                                    {% endif %}
-                                </div>
-                            </div>
+                        <div class="info-item">
+                            <span class="info-label">Gender:</span>
+                            <span class="info-value">{{ student.gender|title if student.gender else 'Not specified' }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Status:</span>
+                            <span class="badge badge-{{ 'success' if student.status == 'active' else 'danger' }}">
+                                {{ student.status|title }}
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Academic Information -->
-        <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-transparent border-0 pb-0">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-graduation-cap text-success me-2"></i>
+            <!-- Academic Information -->
+            <div class="col-md-6">
+                <div class="info-card">
+                    <h3 class="card-title">
+                        <i class="fas fa-graduation-cap"></i>
                         Academic Information
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-sm-6">
-                            <div class="info-item">
-                                <label class="text-muted small">Current Grade</label>
-                                <div class="fw-bold">{{ student.grade or 'Not specified' }}</div>
-                            </div>
+                    </h3>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">Grade/Class:</span>
+                            <span class="info-value">{{ student.grade or 'Not specified' }}</span>
                         </div>
-                        <div class="col-sm-6">
-                            <div class="info-item">
-                                <label class="text-muted small">School/Institution</label>
-                                <div class="fw-bold">{{ student.school or 'Not specified' }}</div>
-                            </div>
+                        <div class="info-item">
+                            <span class="info-label">School:</span>
+                            <span class="info-value">{{ student.school or 'Not provided' }}</span>
                         </div>
-                        <div class="col-sm-6">
-                            <div class="info-item">
-                                <label class="text-muted small">Board</label>
-                                <div class="fw-bold">{{ student.board or 'Not specified' }}</div>
-                            </div>
+                        <div class="info-item">
+                            <span class="info-label">Board:</span>
+                            <span class="info-value">{{ student.board|upper if student.board else 'Not specified' }}</span>
                         </div>
-                        <div class="col-sm-6">
-                            <div class="info-item">
-                                <label class="text-muted small">Department</label>
-                                <div class="fw-bold">
-                                    {% if student.department %}
-                                        <span class="badge bg-primary">{{ student.department.name }}</span>
-                                    {% else %}
-                                        Not assigned
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="info-item">
-                                <label class="text-muted small">Learning Goals</label>
-                                <div class="fw-bold">{{ student.learning_goals or 'Not specified' }}</div>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="info-item">
-                                <label class="text-muted small">Address</label>
-                                <div class="fw-bold">
-                                    {% if student.address %}
-                                        <i class="fas fa-map-marker-alt me-1 text-muted"></i>
-                                        {{ student.address }}
-                                    {% else %}
-                                        Not provided
-                                    {% endif %}
-                                </div>
-                            </div>
+                        <div class="info-item">
+                            <span class="info-label">Department:</span>
+                            <span class="info-value">{{ student.department.name if student.department else 'Not assigned' }}</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Parent/Guardian Information -->
-    {% if parents %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-users text-warning me-2"></i>
+        <div class="row mt-4">
+            <!-- Address Information -->
+            <div class="col-md-6">
+                <div class="info-card">
+                    <h3 class="card-title">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Address Information
+                    </h3>
+                    <div class="info-list">
+                        {% if student.address_line1 or student.city or student.state %}
+                        <div class="info-item">
+                            <span class="info-label">Address:</span>
+                            <span class="info-value">
+                                {% if student.address_line1 %}{{ student.address_line1 }}<br>{% endif %}
+                                {% if student.address_line2 %}{{ student.address_line2 }}<br>{% endif %}
+                                {% if student.city %}{{ student.city }}{% endif %}
+                                {% if student.state %}, {{ student.state }}{% endif %}
+                                {% if student.pincode %} - {{ student.pincode }}{% endif %}
+                            </span>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No address information provided</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="col-md-6">
+                <div class="info-card">
+                    <h3 class="card-title">
+                        <i class="fas fa-tasks"></i>
+                        Quick Actions
+                    </h3>
+                    <div class="action-buttons">
+                        {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
+                        <a href="{{ url_for('enroll_student_route', id=student.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-user-plus"></i>
+                            Enroll in Class
+                        </a>
+                        <a href="{{ url_for('student_fees_route', id=student.id) }}" class="btn btn-outline-success">
+                            <i class="fas fa-rupee-sign"></i>
+                            Manage Fees
+                        </a>
+                        <a href="{{ url_for('student_attendance', id=student.id) }}" class="btn btn-outline-info">
+                            <i class="fas fa-calendar-check"></i>
+                            View Attendance
+                        </a>
+                        <a href="{{ url_for('student_documents', id=student.id) }}" class="btn btn-outline-warning">
+                            <i class="fas fa-file-alt"></i>
+                            Documents
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parent Information -->
+        {% if student.parents %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="info-card">
+                    <h3 class="card-title">
+                        <i class="fas fa-users"></i>
                         Parent/Guardian Information
-                    </h5>
-                    {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
-                    <button class="btn btn-sm btn-outline-primary" onclick="addParentModal()">
-                        <i class="fas fa-plus me-1"></i> Add Parent
-                    </button>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    <div class="row g-4">
-                        {% for parent in parents %}
-                        <div class="col-md-6">
-                            <div class="parent-card p-3 border rounded">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="mb-0">{{ parent.full_name }}</h6>
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                                            <i class="fas fa-ellipsis-v"></i>
-                                        </button>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="#" onclick="editParent('{{ parent.id }}')">
-                                                <i class="fas fa-edit me-2"></i>Edit
-                                            </a></li>
-                                            <li><a class="dropdown-item text-danger" href="#" onclick="deleteParent('{{ parent.id }}')">
-                                                <i class="fas fa-trash me-2"></i>Delete
-                                            </a></li>
-                                        </ul>
-                                    </div>
-                                </div>
-                                
-                                <div class="row g-2 text-sm">
-                                    <div class="col-12">
-                                        <span class="badge bg-{{ 'primary' if parent.is_primary_contact else 'secondary' }} me-1">
-                                            {% if parent.is_primary_contact %}Primary Contact{% else %}Contact{% endif %}
-                                        </span>
-                                        <span class="badge bg-info">{{ parent.relationship|title }}</span>
-                                        {% if parent.is_emergency_contact %}
-                                        <span class="badge bg-danger">Emergency Contact</span>
-                                        {% endif %}
-                                    </div>
-                                    
-                                    {% if parent.email %}
-                                    <div class="col-12">
-                                        <i class="fas fa-envelope text-muted me-1"></i>
-                                        <a href="mailto:{{ parent.email }}" class="text-decoration-none">{{ parent.email }}</a>
-                                    </div>
-                                    {% endif %}
-                                    
-                                    <div class="col-12">
-                                        <i class="fas fa-phone text-muted me-1"></i>
-                                        <a href="tel:{{ parent.phone }}" class="text-decoration-none">{{ parent.phone }}</a>
-                                    </div>
-                                    
-                                    {% if parent.occupation %}
-                                    <div class="col-12">
-                                        <i class="fas fa-briefcase text-muted me-1"></i>
-                                        {{ parent.occupation }}
-                                        {% if parent.workplace %}- {{ parent.workplace }}{% endif %}
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Enrollments and Academic Progress -->
-    <div class="row g-4 mb-4">
-        <!-- Current Enrollments -->
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-book text-info me-2"></i>
-                        Current Enrollments
-                    </h5>
-                    {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
-                    <a href="{{ url_for('enroll_student_route', id=student.id) }}" class="btn btn-sm btn-primary">
-                        <i class="fas fa-plus me-1"></i> New Enrollment
-                    </a>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    {% if enrollments %}
+                    </h3>
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
+                        <table class="table table-striped">
+                            <thead>
                                 <tr>
-                                    <th>Subject</th>
-                                    <th>Tutor</th>
-                                    <th>Schedule</th>
-                                    <th>Status</th>
-                                    <th>Progress</th>
-                                    <th>Actions</th>
+                                    <th>Name</th>
+                                    <th>Relationship</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Primary Contact</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for enrollment in enrollments %}
+                                {% for parent in student.parents %}
                                 <tr>
+                                    <td>{{ parent.first_name }} {{ parent.last_name }}</td>
+                                    <td>{{ parent.relationship|title }}</td>
+                                    <td>{{ parent.phone }}</td>
+                                    <td>{{ parent.email or '-' }}</td>
                                     <td>
-                                        <div class="fw-bold">{{ enrollment.subject }}</div>
-                                        <small class="text-muted">{{ enrollment.class_type|title }} Classes</small>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-sm me-2">
-                                                <i class="fas fa-chalkboard-teacher text-primary"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-bold">{{ enrollment.tutor.full_name }}</div>
-                                                <small class="text-muted">{{ enrollment.tutor.email }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="small">
-                                            <i class="fas fa-calendar me-1"></i>{{ enrollment.sessions_per_week }}x/week<br>
-                                            <i class="fas fa-clock me-1"></i>{{ enrollment.session_duration }} min
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if enrollment.status == 'active' else 'warning' if enrollment.status == 'pending' else 'secondary' }}">
-                                            {{ enrollment.status|title }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="progress" style="height: 8px;">
-                                            {% set progress = (enrollment.completed_sessions / enrollment.total_sessions * 100) if enrollment.total_sessions > 0 else 0 %}
-                                            <div class="progress-bar bg-success" data-width="{{ progress }}" style="width: 0%"></div>
-                                        </div>
-                                        <small class="text-muted">
-                                            {{ enrollment.completed_sessions }}/{{ enrollment.total_sessions }} sessions
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{{ url_for('view_enrollment', id=enrollment.id) }}" class="btn btn-outline-primary btn-sm">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
-                                            <a href="{{ url_for('edit_enrollment', id=enrollment.id) }}" class="btn btn-outline-warning btn-sm">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            {% endif %}
-                                        </div>
+                                        {% if parent.is_primary_contact %}
+                                        <span class="badge badge-success">Yes</span>
+                                        {% else %}
+                                        <span class="badge badge-secondary">No</span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
-                        <h6 class="text-muted">No enrollments found</h6>
-                        <p class="text-muted">This student is not enrolled in any subjects yet.</p>
-                        {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
-                        <a href="{{ url_for('enroll_student_route', id=student.id) }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-1"></i> Create First Enrollment
-                        </a>
-                        {% endif %}
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
+        {% endif %}
 
-        <!-- Fee Summary -->
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-dollar-sign text-success me-2"></i>
-                        Fee Summary
-                    </h5>
-                    {% if current_user.role in ['superadmin', 'admin', 'coordinator', 'finance_coordinator'] %}
-                    <a href="{{ url_for('student_fees_detail', id=student.id) }}" class="btn btn-sm btn-outline-success">
-                        <i class="fas fa-plus me-1"></i> Add Fee
-                    </a>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    {% if fees %}
-                    <div class="fee-summary mb-3">
-                        {% set total_fees = fees|sum(attribute='amount') %}
-                        {% set paid_fees = fees|sum(attribute='paid_amount') %}
-                        {% set pending_fees = total_fees - paid_fees %}
-                        
-                        <div class="row g-2 text-center">
-                            <div class="col-4">
-                                <div class="bg-light p-2 rounded">
-                                    <div class="h6 mb-0 text-primary">₹{{ "{:,.0f}".format(total_fees) }}</div>
-                                    <small class="text-muted">Total</small>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="bg-light p-2 rounded">
-                                    <div class="h6 mb-0 text-success">₹{{ "{:,.0f}".format(paid_fees) }}</div>
-                                    <small class="text-muted">Paid</small>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="bg-light p-2 rounded">
-                                    <div class="h6 mb-0 text-{{ 'warning' if pending_fees > 0 else 'success' }}">₹{{ "{:,.0f}".format(pending_fees) }}</div>
-                                    <small class="text-muted">Pending</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="recent-fees">
-                        <h6 class="mb-2">Recent Transactions</h6>
-                        {% for fee in fees[:3] %}
-                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                            <div>
-                                <div class="fw-bold small">{{ fee.fee_type|title }}</div>
-                                <small class="text-muted">Due: {{ fee.due_date.strftime('%b %d') }}</small>
-                            </div>
-                            <div class="text-end">
-                                <div class="fw-bold">₹{{ "{:,.0f}".format(fee.amount) }}</div>
-                                <span class="badge bg-{{ 'success' if fee.status == 'paid' else 'warning' if fee.status == 'pending' else 'danger' }} badge-sm">
-                                    {{ fee.status|title }}
-                                </span>
-                            </div>
-                        </div>
-                        {% endfor %}
-                        
-                        {% if fees|length > 3 %}
-                        <div class="text-center mt-2">
-                            <a href="{{ url_for('student_fees_detail', id=student.id) }}" class="btn btn-sm btn-outline-primary">
-                                View All Fees
-                            </a>
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% else %}
-                    <div class="text-center py-3">
-                        <i class="fas fa-receipt fa-2x text-muted mb-2"></i>
-                        <p class="text-muted mb-0">No fee records found</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Additional Information -->
-    {% if student.get_custom_fields() %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-transparent border-0">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-info-circle text-info me-2"></i>
-                        Additional Information
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        {% for key, value in student.get_custom_fields().items() %}
+        <!-- System Information -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="info-card">
+                    <h3 class="card-title">
+                        <i class="fas fa-info-circle"></i>
+                        System Information
+                    </h3>
+                    <div class="row">
                         <div class="col-md-6">
                             <div class="info-item">
-                                <label class="text-muted small">{{ key|replace('_', ' ')|title }}</label>
-                                <div class="fw-bold">{{ value }}</div>
+                                <span class="info-label">Created Date:</span>
+                                <span class="info-value">{{ student.created_at.strftime('%B %d, %Y at %I:%M %p') if student.created_at else 'Unknown' }}</span>
                             </div>
                         </div>
-                        {% endfor %}
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <span class="info-label">Last Updated:</span>
+                                <span class="info-value">{{ student.updated_at.strftime('%B %d, %Y at %I:%M %p') if student.updated_at else 'Not updated' }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    {% endif %}
 </div>
 
 <style>
-.bg-gradient-info {
-    background: linear-gradient(135deg, #17a2b8, #138496) !important;
-}
-
-.student-avatar {
-    width: 100px;
-    height: 100px;
+.page-container {
+    padding: 0 32px 32px;
+    max-width: 1400px;
     margin: 0 auto;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-.student-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.student-details-container {
+    margin-top: 20px;
 }
 
-.avatar-placeholder {
-    width: 100%;
+.info-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 24px;
+    margin-bottom: 20px;
     height: 100%;
-    background: rgba(255, 255, 255, 0.2);
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 20px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: white;
+    gap: 8px;
+}
+
+.card-title i {
+    color: #F1A150;
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .info-item {
-    margin-bottom: 1rem;
-}
-
-.info-item label {
-    display: block;
-    margin-bottom: 0.25rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.parent-card {
-    background: #f8f9fa;
-    transition: all 0.3s ease;
-    border: 1px solid #e9ecef !important;
-}
-
-.parent-card:hover {
-    background: #e9ecef;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.avatar-sm {
-    width: 32px;
-    height: 32px;
-    background: #f8f9fa;
-    border-radius: 50%;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #e9ecef;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
 }
 
-.table td {
-    vertical-align: middle;
+.info-item:last-child {
+    border-bottom: none;
 }
 
-.progress {
-    background-color: rgba(0, 0, 0, 0.1);
+.info-label {
+    font-weight: 500;
+    color: #555;
+    min-width: 120px;
 }
 
-.badge-sm {
-    font-size: 0.7rem;
+.info-value {
+    color: #333;
+    text-align: right;
+    flex: 1;
 }
 
-.fee-summary .bg-light {
-    transition: all 0.3s ease;
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
-.fee-summary .bg-light:hover {
-    background-color: #e9ecef !important;
-    transform: translateY(-2px);
+.action-buttons .btn {
+    flex: 1;
+    min-width: 140px;
 }
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.badge-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: 0 20px 20px;
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+    
+    .info-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .info-value {
+        text-align: left;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons .btn {
+        min-width: auto;
     }
 }
-
-.card {
-    animation: fadeInUp 0.6s ease-out;
-}
-
-.card:nth-child(1) { animation-delay: 0.1s; }
-.card:nth-child(2) { animation-delay: 0.2s; }
-.card:nth-child(3) { animation-delay: 0.3s; }
-.card:nth-child(4) { animation-delay: 0.4s; }
 </style>
-
-<script>
-function editParent(parentId) {
-    // Implementation for editing parent
-    LMS.showAlert('Edit parent functionality coming soon!', 'info');
-}
-
-function deleteParent(parentId) {
-    LMS.confirmAction('Are you sure you want to delete this parent/guardian?', function() {
-        // Implementation for deleting parent
-        LMS.showAlert('Parent deleted successfully!', 'success');
-    });
-}
-
-function addParentModal() {
-    // Implementation for adding new parent
-    LMS.showAlert('Add parent functionality coming soon!', 'info');
-}
-</script>
 {% endblock %}

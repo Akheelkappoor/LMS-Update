@@ -11,7 +11,7 @@
         </h1>
         <div class="header-actions">
             {% if current_user.role in ['superadmin', 'admin'] %}
-            <a href="{{ url_for('create_user') }}?role=tutor" class="btn btn-primary">
+            <a href="{{ url_for('register_tutor') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i>
                 Add Tutor
             </a>
@@ -21,6 +21,31 @@
 </div>
 
 <div class="page-container">
+    <!-- Search and Filters -->
+    <div class="filters-section">
+        <form method="GET" class="filters-form">
+            <div class="filter-row">
+                <div class="search-group">
+                    <input type="text" name="search" class="form-control" placeholder="Search tutors..." value="{{ request.args.get('search', '') }}">
+                </div>
+                <div class="filter-group">
+                    <select name="department" class="form-control">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if request.args.get('department') == dept.id|string %}selected{% endif %}>
+                            {{ dept.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-secondary">
+                    <i class="fas fa-search"></i>
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
     {% if tutors %}
     <div class="tutors-grid">
         {% for tutor in tutors %}
@@ -45,48 +70,68 @@
             <div class="tutor-stats">
                 <div class="stat-item">
                     <i class="fas fa-users"></i>
-                    <span>0 Students</span>
+                    <span>{{ tutor.total_classes_taught or 0 }} Classes</span>
                 </div>
                 <div class="stat-item">
                     <i class="fas fa-clock"></i>
-                    <span>0 Hours</span>
+                    <span>{{ "Active" if tutor.is_active else "Inactive" }}</span>
                 </div>
                 <div class="stat-item">
                     <i class="fas fa-star"></i>
-                    <span>5.0 Rating</span>
+                    <span>{{ "%.1f"|format(tutor.feedback_rating or 0.0) }} Rating</span>
                 </div>
             </div>
             
             <div class="tutor-status">
                 {% if tutor.is_active %}
-                <span class="status-badge active">Active</span>
+                <span class="status-badge active">
+                    <i class="fas fa-check-circle"></i>
+                    Active
+                </span>
                 {% else %}
-                <span class="status-badge inactive">Inactive</span>
+                <span class="status-badge inactive">
+                    <i class="fas fa-pause-circle"></i>
+                    Inactive
+                </span>
                 {% endif %}
             </div>
             
             <div class="tutor-actions">
-                <a href="{{ url_for('view_user', id=tutor.id) }}" class="btn btn-sm btn-primary">
+                <a href="{{ url_for('view_tutor', id=tutor.id) }}" class="btn btn-sm btn-primary">
                     <i class="fas fa-eye"></i>
-                    View Profile
+                    View
                 </a>
                 {% if current_user.role in ['superadmin', 'admin'] %}
-                <a href="{{ url_for('edit_user', id=tutor.id) }}" class="btn btn-sm btn-secondary">
+                <a href="{{ url_for('edit_tutor', id=tutor.id) }}" class="btn btn-sm btn-secondary">
                     <i class="fas fa-edit"></i>
                     Edit
                 </a>
+                <button class="btn btn-sm btn-outline-warning" onclick="toggleTutorStatus('{{ tutor.id }}')">
+                    <i class="fas fa-power-off"></i>
+                    {% if tutor.is_active %}Deactivate{% else %}Activate{% endif %}
+                </button>
                 {% endif %}
             </div>
         </div>
         {% endfor %}
     </div>
+    
+    <!-- Pagination if needed -->
+    {% if tutors|length > 20 %}
+    <div class="pagination-section">
+        <!-- Add pagination logic here if needed -->
+    </div>
+    {% endif %}
+    
     {% else %}
     <div class="empty-state">
-        <i class="fas fa-chalkboard-teacher"></i>
+        <div class="empty-icon">
+            <i class="fas fa-chalkboard-teacher"></i>
+        </div>
         <h3>No Tutors Found</h3>
-        <p>No tutors have been added yet</p>
+        <p>{% if request.args.get('search') or request.args.get('department') %}No tutors match your search criteria.{% else %}No tutors have been added yet.{% endif %}</p>
         {% if current_user.role in ['superadmin', 'admin'] %}
-        <a href="{{ url_for('create_user') }}?role=tutor" class="btn btn-primary">
+        <a href="{{ url_for('register_tutor') }}" class="btn btn-primary">
             <i class="fas fa-plus"></i>
             Add First Tutor
         </a>
@@ -100,6 +145,28 @@
     padding: 32px;
     max-width: 1400px;
     margin: 0 auto;
+}
+
+.filters-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 32px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.filter-row {
+    display: flex;
+    gap: 16px;
+    align-items: end;
+}
+
+.search-group {
+    flex: 1;
+}
+
+.filter-group {
+    min-width: 200px;
 }
 
 .tutors-grid {
@@ -199,7 +266,10 @@
 }
 
 .status-badge {
-    padding: 4px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
     border-radius: 20px;
     font-size: 12px;
     font-weight: 500;
@@ -218,6 +288,7 @@
 .tutor-actions {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .empty-state {
@@ -226,10 +297,13 @@
     color: #666;
 }
 
-.empty-state i {
+.empty-icon {
+    margin-bottom: 20px;
+}
+
+.empty-icon i {
     font-size: 80px;
     color: #F1A150;
-    margin-bottom: 20px;
 }
 
 .empty-state h3 {
@@ -244,6 +318,10 @@
 }
 
 @media (max-width: 768px) {
+    .filter-row {
+        flex-direction: column;
+    }
+    
     .tutors-grid {
         grid-template-columns: 1fr;
     }
@@ -262,6 +340,35 @@
         flex-direction: row;
         justify-content: center;
     }
+    
+    .tutor-actions {
+        justify-content: center;
+    }
 }
 </style>
+
+<script>
+function toggleTutorStatus(tutorId) {
+    if (confirm('Are you sure you want to change this tutor\'s status?')) {
+        fetch(`/tutors/${tutorId}/toggle-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating tutor status');
+        });
+    }
+}
+</script>
 {% endblock %}

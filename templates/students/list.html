@@ -1,3 +1,5 @@
+<!-- REPLACE templates/students/list.html with this: -->
+
 {% extends "base.html" %}
 
 {% block title %}Students - LMS{% endblock %}
@@ -20,78 +22,99 @@
     </div>
 </div>
 
-<!-- Search and Filters -->
-<div class="filters-section">
-    <div class="search-box">
-        <form method="GET" action="{{ url_for('students') }}" class="search-form">
-            <div class="input-group">
-                <input type="text" name="search" class="form-control" placeholder="Search students..." 
-                       value="{{ current_search or '' }}">
-                <button type="submit" class="btn btn-outline-primary">
+<div class="page-container">
+    <!-- Search and Filters -->
+    <div class="filters-section">
+        <form method="GET" class="filters-form">
+            <div class="filter-row">
+                <div class="search-group">
+                    <input type="text" name="search" class="form-control" placeholder="Search students..." value="{{ request.args.get('search', '') }}">
+                </div>
+                <div class="filter-group">
+                    <select name="grade" class="form-control">
+                        <option value="">All Grades</option>
+                        <option value="1st" {% if request.args.get('grade') == '1st' %}selected{% endif %}>1st Grade</option>
+                        <option value="2nd" {% if request.args.get('grade') == '2nd' %}selected{% endif %}>2nd Grade</option>
+                        <option value="3rd" {% if request.args.get('grade') == '3rd' %}selected{% endif %}>3rd Grade</option>
+                        <option value="4th" {% if request.args.get('grade') == '4th' %}selected{% endif %}>4th Grade</option>
+                        <option value="5th" {% if request.args.get('grade') == '5th' %}selected{% endif %}>5th Grade</option>
+                        <option value="6th" {% if request.args.get('grade') == '6th' %}selected{% endif %}>6th Grade</option>
+                        <option value="7th" {% if request.args.get('grade') == '7th' %}selected{% endif %}>7th Grade</option>
+                        <option value="8th" {% if request.args.get('grade') == '8th' %}selected{% endif %}>8th Grade</option>
+                        <option value="9th" {% if request.args.get('grade') == '9th' %}selected{% endif %}>9th Grade</option>
+                        <option value="10th" {% if request.args.get('grade') == '10th' %}selected{% endif %}>10th Grade</option>
+                        <option value="11th" {% if request.args.get('grade') == '11th' %}selected{% endif %}>11th Grade</option>
+                        <option value="12th" {% if request.args.get('grade') == '12th' %}selected{% endif %}>12th Grade</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select name="status" class="form-control">
+                        <option value="">All Status</option>
+                        <option value="active" {% if request.args.get('status') == 'active' %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if request.args.get('status') == 'inactive' %}selected{% endif %}>Inactive</option>
+                        <option value="graduated" {% if request.args.get('status') == 'graduated' %}selected{% endif %}>Graduated</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-secondary">
                     <i class="fas fa-search"></i>
+                    Filter
                 </button>
             </div>
         </form>
     </div>
-    
-    <div class="filter-controls">
-        <select name="grade" class="form-control" onchange="filterStudents()">
-            <option value="">All Grades</option>
-            <option value="1st" {% if current_grade == '1st' %}selected{% endif %}>1st Grade</option>
-            <option value="2nd" {% if current_grade == '2nd' %}selected{% endif %}>2nd Grade</option>
-            <option value="3rd" {% if current_grade == '3rd' %}selected{% endif %}>3rd Grade</option>
-            <option value="4th" {% if current_grade == '4th' %}selected{% endif %}>4th Grade</option>
-            <option value="5th" {% if current_grade == '5th' %}selected{% endif %}>5th Grade</option>
-        </select>
-        
-        <select name="status" class="form-control" onchange="filterStudents()">
-            <option value="">All Status</option>
-            <option value="active" {% if current_status == 'active' %}selected{% endif %}>Active</option>
-            <option value="inactive" {% if current_status == 'inactive' %}selected{% endif %}>Inactive</option>
-            <option value="graduated" {% if current_status == 'graduated' %}selected{% endif %}>Graduated</option>
-        </select>
-    </div>
-</div>
 
-<!-- Students List -->
-<div class="students-container">
+    <!-- Students Grid -->
     {% if students %}
     <div class="students-grid">
         {% for student in students %}
         <div class="student-card">
             <div class="student-avatar">
-                {% if student.profile_picture_path %}
-                <img src="{{ url_for('static', filename=student.profile_picture_path) }}" alt="{{ student.full_name }}">
-                {% else %}
-                <div class="avatar-placeholder">
-                    {{ student.first_name[0] }}{{ student.last_name[0] }}
-                </div>
-                {% endif %}
+                <img src="{{ student.profile_picture_path or '/static/img/default-student.png' }}" alt="{{ student.first_name }} {{ student.last_name }}">
+                <div class="status-indicator {{ 'active' if student.status == 'active' else 'inactive' }}"></div>
             </div>
             
             <div class="student-info">
-                <h3 class="student-name">{{ student.full_name }}</h3>
-                <p class="student-id">ID: {{ student.student_id }}</p>
-                <p class="student-grade">Grade: {{ student.grade or 'Not specified' }}</p>
-                <p class="student-department">{{ student.department.name if student.department else 'No Department' }}</p>
+                <h3 class="student-name">{{ student.first_name }} {{ student.last_name }}</h3>
+                <p class="student-id">Student ID: {{ student.student_id }}</p>
+                <p class="student-email">{{ student.email }}</p>
+                <p class="student-grade">Grade: {{ student.grade or 'Not Set' }}</p>
+                <p class="student-school">{{ student.school or 'No School Listed' }}</p>
             </div>
             
-            <div class="student-status">
-                <span class="status-badge status-{{ student.status }}">
-                    {{ student.status|title }}
-                </span>
+            <div class="student-stats">
+                <div class="stat-item">
+                    <span class="stat-value">{{ student.phone or 'N/A' }}</span>
+                    <span class="stat-label">Phone</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">{{ student.created_at.strftime('%b %Y') if student.created_at else 'Unknown' }}</span>
+                    <span class="stat-label">Joined</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">
+                        {% if student.department %}
+                            {{ student.department.name }}
+                        {% else %}
+                            No Dept
+                        {% endif %}
+                    </span>
+                    <span class="stat-label">Department</span>
+                </div>
             </div>
             
             <div class="student-actions">
-                <a href="{{ url_for('view_student', id=student.id) }}" class="btn btn-sm btn-primary">
-                    <i class="fas fa-eye"></i>
-                    View
+                <a href="{{ url_for('view_student', id=student.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-eye"></i> View
                 </a>
                 {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
-                <a href="{{ url_for('edit_student', id=student.id) }}" class="btn btn-sm btn-secondary">
-                    <i class="fas fa-edit"></i>
-                    Edit
+                <a href="{{ url_for('edit_student', id=student.id) }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-edit"></i> Edit
                 </a>
+                <button onclick="toggleStudentStatus('{{ student.id }}')" 
+                        class="btn btn-sm {{ 'btn-outline-danger' if student.status == 'active' else 'btn-outline-success' }}">
+                    <i class="fas {{ 'fa-pause' if student.status == 'active' else 'fa-play' }}"></i>
+                    {{ 'Deactivate' if student.status == 'active' else 'Activate' }}
+                </button>
                 {% endif %}
             </div>
         </div>
@@ -99,11 +122,13 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <i class="fas fa-user-graduate"></i>
+        <div class="empty-icon">
+            <i class="fas fa-user-graduate"></i>
+        </div>
         <h3>No Students Found</h3>
-        <p>{% if current_search %}No students match your search criteria.{% else %}No students have been added yet.{% endif %}</p>
+        <p>No students match your current filters. Try adjusting your search criteria.</p>
         {% if current_user.role in ['superadmin', 'admin', 'coordinator'] %}
-        <a href="{{ url_for('create_student') }}" class="btn btn-primary">
+        <a href="{{ url_for('create_student') }}" class="btn btn-primary btn-lg">
             <i class="fas fa-plus"></i>
             Add First Student
         </a>
@@ -112,135 +137,162 @@
     {% endif %}
 </div>
 
+<script>
+function toggleStudentStatus(studentId) {
+    if (confirm('Are you sure you want to change this student\'s status?')) {
+        fetch(`/students/${studentId}/toggle-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Refresh page to show updated status
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error updating student status');
+        });
+    }
+}
+</script>
+
 <style>
+.page-container {
+    padding: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
 .filters-section {
     background: white;
-    padding: 20px;
-    margin-bottom: 20px;
     border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    display: flex;
-    gap: 20px;
-    align-items: center;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.search-box {
+.filter-row {
+    display: flex;
+    gap: 16px;
+    align-items: end;
+}
+
+.search-group {
+    flex: 2;
+}
+
+.filter-group {
     flex: 1;
-}
-
-.input-group {
-    display: flex;
-    max-width: 400px;
-}
-
-.input-group .form-control {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-}
-
-.input-group .btn {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-}
-
-.filter-controls {
-    display: flex;
-    gap: 15px;
-}
-
-.filter-controls select {
-    min-width: 150px;
 }
 
 .students-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 24px;
 }
 
 .student-card {
     background: white;
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 24px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-    border: 1px solid #f0f0f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
 }
 
 .student-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
 
 .student-avatar {
-    text-align: center;
-    margin-bottom: 16px;
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 16px;
 }
 
-.student-avatar img,
-.avatar-placeholder {
-    width: 60px;
-    height: 60px;
+.student-avatar img {
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
+    object-fit: cover;
 }
 
-.avatar-placeholder {
-    background: linear-gradient(45deg, #F1A150, #C86706);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 18px;
-    margin: 0 auto;
+.status-indicator {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid white;
+}
+
+.status-indicator.active {
+    background-color: #28a745;
+}
+
+.status-indicator.inactive {
+    background-color: #dc3545;
 }
 
 .student-info {
     text-align: center;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .student-name {
     font-size: 18px;
     font-weight: 600;
     color: #333;
-    margin-bottom: 4px;
+    margin: 0 0 4px 0;
 }
 
-.student-id,
-.student-grade,
-.student-department {
-    color: #666;
+.student-id {
     font-size: 14px;
-    margin-bottom: 2px;
+    color: #666;
+    margin: 0 0 8px 0;
+    font-family: monospace;
 }
 
-.student-status {
+.student-email, .student-grade, .student-school {
+    font-size: 14px;
+    color: #666;
+    margin: 4px 0;
+}
+
+.student-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px 0;
+    border-top: 1px solid #e9ecef;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.stat-item {
     text-align: center;
-    margin-bottom: 16px;
 }
 
-.status-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
+.stat-value {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.stat-label {
+    display: block;
     font-size: 12px;
-    font-weight: 500;
-    text-transform: uppercase;
-}
-
-.status-active {
-    background: #d4edda;
-    color: #155724;
-}
-
-.status-inactive {
-    background: #f8d7da;
-    color: #721c24;
-}
-
-.status-graduated {
-    background: #cce5ff;
-    color: #004085;
+    color: #666;
+    margin-top: 4px;
 }
 
 .student-actions {
@@ -249,64 +301,47 @@
     justify-content: center;
 }
 
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 12px;
-}
-
 .empty-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 80px 32px;
     background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.empty-state i {
+.empty-icon {
     font-size: 64px;
-    color: #F1A150;
-    margin-bottom: 20px;
+    color: #dee2e6;
+    margin-bottom: 24px;
 }
 
 .empty-state h3 {
     color: #333;
-    margin-bottom: 10px;
+    margin-bottom: 16px;
 }
 
 .empty-state p {
     color: #666;
-    margin-bottom: 20px;
+    margin-bottom: 32px;
 }
 
 @media (max-width: 768px) {
-    .filters-section {
+    .filter-row {
         flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .filter-controls {
-        flex-direction: column;
+        gap: 12px;
     }
     
     .students-grid {
         grid-template-columns: 1fr;
     }
+    
+    .student-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .student-actions {
+        flex-direction: column;
+    }
 }
 </style>
-
-<script>
-function filterStudents() {
-    const grade = document.querySelector('select[name="grade"]').value;
-    const status = document.querySelector('select[name="status"]').value;
-    
-    const url = new URL(window.location);
-    if (grade) url.searchParams.set('grade', grade);
-    else url.searchParams.delete('grade');
-    
-    if (status) url.searchParams.set('status', status);
-    else url.searchParams.delete('status');
-    
-    window.location.href = url.toString();
-}
-</script>
 {% endblock %}

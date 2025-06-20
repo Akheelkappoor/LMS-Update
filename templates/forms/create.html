@@ -753,6 +753,12 @@ function showFieldProperties(field) {
     const panel = document.getElementById('fieldProperties');
     const content = document.getElementById('propertiesContent');
     
+    // Check if field exists and has required properties
+    if (!field || !field.hasOwnProperty('label')) {
+        console.error('Invalid field object:', field);
+        return;
+    }
+    
     panel.style.display = 'block';
     
     content.innerHTML = `
@@ -761,12 +767,12 @@ function showFieldProperties(field) {
             
             <div class="form-group">
                 <label class="form-label">Field Label</label>
-                <input type="text" class="form-control" id="propLabel" value="${field.label}" onchange="updateFieldProperty('label', this.value)">
+                <input type="text" class="form-control" id="propLabel" value="${field.label || ''}" onchange="updateFieldProperty('label', this.value)">
             </div>
             
             <div class="form-group">
                 <label class="form-label">Field Name</label>
-                <input type="text" class="form-control" id="propName" value="${field.name}" onchange="updateFieldProperty('name', this.value)">
+                <input type="text" class="form-control" id="propName" value="${field.name || ''}" onchange="updateFieldProperty('name', this.value)">
                 <small class="form-text">Used for form submission (no spaces)</small>
             </div>
             
@@ -798,53 +804,19 @@ function showFieldProperties(field) {
         ${(field.type === 'dropdown' || field.type === 'checkbox' || field.type === 'radio') ? `
         <div class="property-group">
             <h4>Options</h4>
-            
-            <div id="optionsList">
-                ${field.options.map((opt, idx) => `
+            <div id="optionsContainer">
+                ${(field.options || []).map((option, index) => `
                     <div class="option-item">
-                        <input type="text" class="form-control" value="${opt}" onchange="updateOption(${idx}, this.value)">
-                        <button class="btn-icon small danger" onclick="removeOption(${idx})">
-                            <i class="fas fa-times"></i>
+                        <input type="text" class="form-control" value="${option}" onchange="updateOption(${index}, this.value)">
+                        <button type="button" class="btn-icon danger" onclick="removeOption(${index})" title="Remove Option">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 `).join('')}
             </div>
-            
-            <button class="btn btn-sm btn-secondary mt-2" onclick="addOption()">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addOption()">
                 <i class="fas fa-plus"></i> Add Option
             </button>
-        </div>
-        ` : ''}
-        
-        ${field.type === 'number' ? `
-        <div class="property-group">
-            <h4>Validation</h4>
-            
-            <div class="form-group">
-                <label class="form-label">Minimum Value</label>
-                <input type="number" class="form-control" id="propMin" value="${field.validation.min || ''}" onchange="updateValidation('min', this.value)">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Maximum Value</label>
-                <input type="number" class="form-control" id="propMax" value="${field.validation.max || ''}" onchange="updateValidation('max', this.value)">
-            </div>
-        </div>
-        ` : ''}
-        
-        ${field.type === 'text' || field.type === 'textarea' ? `
-        <div class="property-group">
-            <h4>Validation</h4>
-            
-            <div class="form-group">
-                <label class="form-label">Minimum Length</label>
-                <input type="number" class="form-control" id="propMinLength" value="${field.validation.minLength || ''}" onchange="updateValidation('minLength', this.value)">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Maximum Length</label>
-                <input type="number" class="form-control" id="propMaxLength" value="${field.validation.maxLength || ''}" onchange="updateValidation('maxLength', this.value)">
-            </div>
         </div>
         ` : ''}
         
@@ -854,13 +826,13 @@ function showFieldProperties(field) {
             
             <div class="form-group">
                 <label class="form-label">Accepted File Types</label>
-                <input type="text" class="form-control" id="propAccept" value="${field.validation.accept || ''}" onchange="updateValidation('accept', this.value)" placeholder="e.g., .pdf,.doc,.docx">
+                <input type="text" class="form-control" id="propAccept" value="${(field.validation && field.validation.accept) || ''}" onchange="updateValidation('accept', this.value)" placeholder="e.g., .pdf,.doc,.docx">
                 <small class="form-text">Comma-separated file extensions</small>
             </div>
             
             <div class="form-group">
                 <label class="form-label">Max File Size (MB)</label>
-                <input type="number" class="form-control" id="propMaxSize" value="${field.validation.maxSize || ''}" onchange="updateValidation('maxSize', this.value)">
+                <input type="number" class="form-control" id="propMaxSize" value="${(field.validation && field.validation.maxSize) || ''}" onchange="updateValidation('maxSize', this.value)">
             </div>
         </div>
         ` : ''}
@@ -1047,7 +1019,7 @@ function saveForm() {
     const formDescription = document.getElementById('formDescription').value;
     const formType = document.getElementById('formType').value;
     
-    if (!formName) {
+    if (!formName.trim()) {
         alert('Please enter a form name');
         return;
     }
@@ -1058,32 +1030,60 @@ function saveForm() {
     }
     
     const formData = {
-        name: formName,
-        description: formDescription,
+        name: formName.trim(),
+        description: formDescription.trim(),
         form_type: formType,
         fields: formFields
     };
     
-    // Send to server
+    // Send to server with proper error handling
     fetch('{{ url_for("create_form") }}', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
+    .then(async response => {
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
             window.location.href = '{{ url_for("forms") }}';
         } else {
-            alert('Error saving form. Please try again.');
+            throw new Error(data.error || 'Unknown error occurred');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error saving form. Please try again.');
+        alert('Error saving form: ' + error.message);
     });
+}
+
+function createField(fieldType) {
+    const fieldId = Date.now(); // Use timestamp as ID
+    let fieldConfig = {
+        id: fieldId,
+        type: fieldType,
+        label: `${fieldType.charAt(0).toUpperCase() + fieldType.slice(1)} Field`,
+        name: `field_${fieldId}`,
+        required: false,
+        placeholder: '',
+        help_text: ''
+    };
+    
+    // Add type-specific properties
+    if (['dropdown', 'checkbox', 'radio'].includes(fieldType)) {
+        fieldConfig.options = ['Option 1', 'Option 2'];
+    }
+    
+    if (fieldType === 'file') {
+        fieldConfig.validation = {
+            accept: '',
+            maxSize: ''
+        };
+    }
+    
+    return fieldConfig;
 }
 
 // Styles for preview modal

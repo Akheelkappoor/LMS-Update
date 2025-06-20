@@ -21,7 +21,6 @@ from .notifications import *
 from .session import *
 from .tutor import *
 
-
 __all__ = [
     'db',
     'User', 

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ student.first_name }} {{ student.last_name }} - Documents{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Documents for {{ student.first_name }} {{ student.last_name }}</h1>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <h3>Uploaded Documents</h3>
+            {% if documents %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Document Name</th>
+                        <th>Uploaded Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in documents %}
+                    <tr>
+                        <td>{{ doc.original_name }}</td>
+                        <td>{{ doc.uploaded_at[:10] }}</td>
+                        <td>
+                            <a href="{{ url_for('static', filename=doc.filepath) }}" target="_blank" class="btn btn-sm btn-primary">View</a>
+                            <button class="btn btn-sm btn-danger">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No documents uploaded yet.</p>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+            <h3>Upload Document</h3>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Select Document</label>
+                    <input type="file" name="document" class="form-control-file" required>
+                    <small class="text-muted">Supported: PDF, DOC, DOCX, JPG, PNG</small>
+                </div>
+                <button type="submit" class="btn btn-primary">Upload Document</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="{{ url_for('view_student', id=student.id) }}" class="btn btn-secondary">Back to Student</a>
+    </div>
+</div>
+{% endblock %}

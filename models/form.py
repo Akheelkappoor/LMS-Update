@@ -198,3 +198,16 @@ class FormField(db.Model):
     
     def __repr__(self):
         return f'<FormField {self.field_name} ({self.field_type})>'
+    
+
+
+def get_fields(self):
+    """Get form fields as list"""
+    try:
+        return json.loads(self.fields) if self.fields else []
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+def set_fields(self, fields_list):
+    """Set form fields from list"""
+    self.fields = json.dumps(fields_list) if fields_list else None
