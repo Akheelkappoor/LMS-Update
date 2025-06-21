@@ -282,7 +282,7 @@ def generate_field_html(field, index):
         html.append(f'<input type="url" id="{field_id}" name="{field_name}" class="form-control" placeholder="{placeholder}" value="{default_value}" {required_attr}>')
     
     elif field_type == 'color':
-        html.append(f'<input type="color" id="{field_id}" name="{field_name}" class="form-control form-control-color" value="{default_value or '#000000'}" {required_attr}>')
+        html.append(f'<input type="color" id="{field_id}" name="{field_name}" class="form-control form-control-color" value="{default_value or "#000000"}" {required_attr}>')
     
     # Add help text if provided
     if field.get('help_text'):

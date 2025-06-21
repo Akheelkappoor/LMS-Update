@@ -7,4 +7,4 @@ source .venv/bin/activate
 # pip3 install -r requirements.txt
 
 # Start Gunicorn to run your Django application
-gunicorn -c gunicorn_config.py main:app
+gunicorn wsgi:app -b 0.0.0.0:5000
