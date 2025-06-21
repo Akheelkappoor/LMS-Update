@@ -1,0 +1,29 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main # Adjust the branch as needed
+
+jobs:
+  deploy:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner: [ec2-aws]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Checkout && Pull Files form repository
+        working-directory: /root/LMS-Update
+        run: sudo git checkout main && sudo git pull origin main
+
+      - name: Reload Daemon
+        working-directory: /root/LMS-Update
+        run: sudo systemctl daemon-reload
+
+      - name: Restart i2Global Main Backend Service
+        working-directory: /root/LMS-Update
+        run: sudo systemctl restart lms.service
