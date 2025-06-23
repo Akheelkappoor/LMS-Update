@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Form Submissions - LMS{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Submissions for: {{ form.name }}</h1>
+    <p>Form submissions functionality coming soon...</p>
+    <a href="{{ url_for('forms') }}" class="btn btn-secondary">Back to Forms</a>
+</div>
+{% endblock %}

@@ -1,0 +1,879 @@
+<!-- 1. CREATE templates/classes/schedule.html - Main class scheduling page -->
+
+{% extends "base.html" %}
+
+{% block title %}Class Scheduling - LMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1 class="page-title">
+            <i class="fas fa-calendar-alt"></i>
+            Class Scheduling
+        </h1>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="openScheduleModal()">
+                <i class="fas fa-plus"></i>
+                Schedule New Class
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="scheduling-container">
+    <!-- Advanced Filters -->
+    <div class="filters-card">
+        <h3><i class="fas fa-filter"></i> Smart Filters</h3>
+        <form method="GET" class="advanced-filters">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>Student</label>
+                    <select name="student_id" class="form-control" id="studentFilter">
+                        <option value="">All Students</option>
+                        {% for student in students %}
+                        <option value="{{ student.id }}" {% if request.args.get('student_id') == student.id|string %}selected{% endif %}>
+                            {{ student.first_name }} {{ student.last_name }} ({{ student.student_id }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Subject</label>
+                    <select name="subject" class="form-control" id="subjectFilter">
+                        <option value="">All Subjects</option>
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Physics">Physics</option>
+                        <option value="Chemistry">Chemistry</option>
+                        <option value="Biology">Biology</option>
+                        <option value="English">English</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Economics">Economics</option>
+                        <option value="Accountancy">Accountancy</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Tutor</label>
+                    <select name="tutor_id" class="form-control" id="tutorFilter">
+                        <option value="">All Tutors</option>
+                        {% for tutor in tutors %}
+                        <option value="{{ tutor.id }}" {% if request.args.get('tutor_id') == tutor.id|string %}selected{% endif %}>
+                            {{ tutor.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Date Range</label>
+                    <input type="date" name="start_date" class="form-control" value="{{ request.args.get('start_date', '') }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label>End Date</label>
+                    <input type="date" name="end_date" class="form-control" value="{{ request.args.get('end_date', '') }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select name="status" class="form-control">
+                        <option value="">All Status</option>
+                        <option value="scheduled" {% if request.args.get('status') == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                        <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="cancelled" {% if request.args.get('status') == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        <option value="in_progress" {% if request.args.get('status') == 'in_progress' %}selected{% endif %}>In Progress</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-secondary">
+                    <i class="fas fa-search"></i> Apply Filters
+                </button>
+                <a href="{{ url_for('schedule') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+                <button type="button" class="btn btn-success" onclick="findAvailableTutors()">
+                    <i class="fas fa-user-check"></i> Find Available Tutors
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Calendar View -->
+    <div class="calendar-container">
+        <div class="calendar-header">
+            <button class="btn btn-outline-primary" onclick="changeView('week')">Week View</button>
+            <button class="btn btn-outline-primary" onclick="changeView('month')">Month View</button>
+            <button class="btn btn-outline-primary" onclick="changeView('list')">List View</button>
+        </div>
+        
+        <div id="calendar-content">
+            <!-- Classes List View -->
+            <div class="classes-list">
+                {% for class in classes %}
+                <div class="class-card status-{{ class.status }}">
+                    <div class="class-header">
+                        <div class="class-title">
+                            <h4>{{ class.subject }}</h4>
+                            <span class="class-type">{{ class.class_type or 'Regular' }}</span>
+                        </div>
+                        <div class="class-status">
+                            <span class="status-badge status-{{ class.status }}">{{ class.status|title }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="class-details">
+                        <div class="detail-row">
+                            <i class="fas fa-user-graduate"></i>
+                            <span>Student: {{ class.enrollment.student.first_name }} {{ class.enrollment.student.last_name }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            <span>Tutor: {{ class.tutor.full_name if class.tutor else 'Not Assigned' }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <i class="fas fa-calendar"></i>
+                            <span>{{ class.class_date.strftime('%A, %B %d, %Y') if class.class_date else 'Not Scheduled' }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <i class="fas fa-clock"></i>
+                            <span>{{ class.start_time.strftime('%I:%M %p') if class.start_time else 'N/A' }} - {{ class.end_time.strftime('%I:%M %p') if class.end_time else 'N/A' }}</span>
+                        </div>
+                        {% if class.meeting_link %}
+                        <div class="detail-row">
+                            <i class="fas fa-video"></i>
+                            <a href="{{ class.meeting_link }}" target="_blank" class="meeting-link">Join Meeting</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="class-actions">
+                        {% if class.status == 'scheduled' %}
+                        <button class="btn btn-sm btn-success" onclick="startClass('{{ class.id }}')">
+                            <i class="fas fa-play"></i> Start
+                        </button>
+                        <button class="btn btn-sm btn-warning" onclick="rescheduleClass('{{ class.id }}')">
+                            <i class="fas fa-edit"></i> Reschedule
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="cancelClass('{{ class.id }}')">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        {% elif class.status == 'in_progress' %}
+                        <button class="btn btn-sm btn-primary" onclick="completeClass('{{ class.id }}')">
+                            <i class="fas fa-check"></i> Complete
+                        </button>
+                        {% endif %}
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewClassDetails('{{ class.id }}')">
+                            <i class="fas fa-eye"></i> Details
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule New Class Modal -->
+<div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Schedule New Class</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="scheduleForm" method="POST" action="{{ url_for('schedule_class') }}">
+                    <!-- Student Selection -->
+                    <div class="form-section">
+                        <h6><i class="fas fa-user-graduate"></i> Student Information</h6>
+                        <div class="form-group">
+                            <label class="form-label required">Select Student</label>
+                            <select name="student_id" class="form-control" required id="modalStudentSelect">
+                                <option value="">Choose Student</option>
+                                {% for student in students %}
+                                <option value="{{ student.id }}" data-grade="{{ student.grade }}" data-department="{{ student.department_id }}">
+                                    {{ student.first_name }} {{ student.last_name }} ({{ student.student_id }}) - Grade {{ student.grade }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Subject Selection -->
+                    <div class="form-section">
+                        <h6><i class="fas fa-book"></i> Subject & Schedule</h6>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label required">Subject</label>
+                                <select name="subject" class="form-control" required id="modalSubjectSelect">
+                                    <option value="">Select Subject</option>
+                                    <option value="Mathematics">Mathematics</option>
+                                    <option value="Physics">Physics</option>
+                                    <option value="Chemistry">Chemistry</option>
+                                    <option value="Biology">Biology</option>
+                                    <option value="English">English</option>
+                                    <option value="Computer Science">Computer Science</option>
+                                    <option value="Economics">Economics</option>
+                                    <option value="Accountancy">Accountancy</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">Class Date</label>
+                                <input type="date" name="class_date" class="form-control" required id="modalDateSelect">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">Start Time</label>
+                                <input type="time" name="start_time" class="form-control" required id="modalStartTime">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">Duration (minutes)</label>
+                                <select name="duration" class="form-control" required>
+                                    <option value="60">60 minutes</option>
+                                    <option value="90">90 minutes</option>
+                                    <option value="120">120 minutes</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Available Tutors Section -->
+                    <div class="form-section">
+                        <h6><i class="fas fa-chalkboard-teacher"></i> Available Tutors</h6>
+                        <div id="availableTutors" class="tutors-grid">
+                            <div class="no-tutors-message">
+                                <i class="fas fa-info-circle"></i>
+                                <p>Select student, subject, date and time to see available tutors</p>
+                            </div>
+                        </div>
+                        <input type="hidden" name="tutor_id" id="selectedTutorId">
+                    </div>
+
+                    <!-- Department-Specific Form Fields -->
+                    <div id="departmentFormFields" class="form-section" style="display: none;">
+                        <!-- Dynamic form fields will be loaded here -->
+                    </div>
+
+                    <!-- Class Details -->
+                    <div class="form-section">
+                        <h6><i class="fas fa-clipboard"></i> Class Details</h6>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Topic to be Covered</label>
+                                <input type="text" name="topic_covered" class="form-control" placeholder="e.g., Quadratic Equations">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Class Type</label>
+                                <select name="class_type" class="form-control">
+                                    <option value="regular">Regular Class</option>
+                                    <option value="demo">Demo Class</option>
+                                    <option value="makeup">Makeup Class</option>
+                                    <option value="test">Test/Assessment</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Class Notes</label>
+                            <textarea name="class_notes" class="form-control" rows="3" placeholder="Any special instructions or notes for this class..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Meeting Details -->
+                    <div class="form-section">
+                        <h6><i class="fas fa-video"></i> Online Meeting (Optional)</h6>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Meeting Link</label>
+                                <input type="url" name="meeting_link" class="form-control" placeholder="https://zoom.us/j/...">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Meeting ID</label>
+                                <input type="text" name="meeting_id" class="form-control" placeholder="123-456-7890">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Meeting Password</label>
+                                <input type="text" name="meeting_password" class="form-control" placeholder="Optional password">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="scheduleForm" class="btn btn-primary">
+                    <i class="fas fa-calendar-plus"></i> Schedule Class
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Class scheduling JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-update available tutors when form changes
+    const studentSelect = document.getElementById('modalStudentSelect');
+    const subjectSelect = document.getElementById('modalSubjectSelect');
+    const dateSelect = document.getElementById('modalDateSelect');
+    const startTimeSelect = document.getElementById('modalStartTime');
+
+    [studentSelect, subjectSelect, dateSelect, startTimeSelect].forEach(element => {
+        if (element) {
+            element.addEventListener('change', updateAvailableTutors);
+        }
+    });
+
+    // Load department form when student is selected
+    if (studentSelect) {
+        studentSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const departmentId = selectedOption.dataset.department;
+            
+            if (departmentId) {
+                loadDepartmentForm(departmentId, 'class');
+            } else {
+                clearDepartmentForm();
+            }
+        });
+    }
+});
+
+function openScheduleModal() {
+    const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+    modal.show();
+}
+
+function updateAvailableTutors() {
+    const studentId = document.getElementById('modalStudentSelect').value;
+    const subject = document.getElementById('modalSubjectSelect').value;
+    const date = document.getElementById('modalDateSelect').value;
+    const startTime = document.getElementById('modalStartTime').value;
+    
+    if (!studentId || !subject || !date || !startTime) {
+        return;
+    }
+    
+    const tutorsContainer = document.getElementById('availableTutors');
+    tutorsContainer.innerHTML = `
+        <div class="loading-tutors">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Finding available tutors...</p>
+        </div>
+    `;
+    
+    // Fetch available tutors
+    fetch('/api/available-tutors', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            student_id: studentId,
+            subject: subject,
+            date: date,
+            start_time: startTime
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            renderAvailableTutors(data.tutors);
+        } else {
+            tutorsContainer.innerHTML = `
+                <div class="no-tutors-message error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>${data.error}</p>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        tutorsContainer.innerHTML = `
+            <div class="no-tutors-message error">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>Error loading tutors. Please try again.</p>
+            </div>
+        `;
+    });
+}
+
+function renderAvailableTutors(tutors) {
+    const tutorsContainer = document.getElementById('availableTutors');
+    
+    if (tutors.length === 0) {
+        tutorsContainer.innerHTML = `
+            <div class="no-tutors-message">
+                <i class="fas fa-user-slash"></i>
+                <p>No tutors available for the selected time slot</p>
+                <small>Try selecting a different time or date</small>
+            </div>
+        `;
+        return;
+    }
+    
+    let tutorsHTML = '';
+    tutors.forEach(tutor => {
+        tutorsHTML += `
+            <div class="tutor-option" onclick="selectTutor(${tutor.id}, '${tutor.name}')">
+                <div class="tutor-avatar">
+                    <img src="${tutor.profile_picture || '/static/img/default-avatar.png'}" alt="${tutor.name}">
+                    <div class="availability-indicator available"></div>
+                </div>
+                <div class="tutor-info">
+                    <h5>${tutor.name}</h5>
+                    <p class="tutor-specialization">${tutor.specialization.join(', ')}</p>
+                    <p class="tutor-experience">${tutor.experience} years exp.</p>
+                    <p class="tutor-rate">₹${tutor.hourly_rate}/hour</p>
+                    ${tutor.rating ? `<div class="tutor-rating">⭐ ${tutor.rating}/5</div>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    tutorsContainer.innerHTML = tutorsHTML;
+}
+
+function selectTutor(tutorId, tutorName) {
+    // Remove previous selections
+    document.querySelectorAll('.tutor-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Select current tutor
+    event.currentTarget.classList.add('selected');
+    document.getElementById('selectedTutorId').value = tutorId;
+}
+
+function loadDepartmentForm(departmentId, formType) {
+    const formContainer = document.getElementById('departmentFormFields');
+    
+    fetch(`/api/departments/${departmentId}/form?type=${formType}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('No form assigned');
+            }
+            return response.json();
+        })
+        .then(data => {
+            renderDepartmentForm(data.form, formContainer);
+        })
+        .catch(error => {
+            clearDepartmentForm();
+        });
+}
+
+function renderDepartmentForm(form, container) {
+    if (!form.fields || form.fields.length === 0) {
+        clearDepartmentForm();
+        return;
+    }
+    
+    let fieldsHTML = `
+        <h6><i class="fas fa-building"></i> ${form.name}</h6>
+        <div class="form-grid">
+    `;
+    
+    form.fields.forEach(field => {
+        fieldsHTML += generateFormFieldHTML(field);
+    });
+    
+    fieldsHTML += '</div>';
+    
+    container.innerHTML = fieldsHTML;
+    container.style.display = 'block';
+}
+
+function generateFormFieldHTML(field) {
+    const required = field.required ? 'required' : '';
+    const requiredLabel = field.required ? '<span class="text-danger">*</span>' : '';
+    
+    let inputHTML = '';
+    
+    switch(field.type) {
+        case 'text':
+        case 'email':
+        case 'tel':
+        case 'url':
+            inputHTML = `<input type="${field.type}" name="custom_${field.name}" class="form-control" ${required}>`;
+            break;
+        case 'select':
+            let options = '<option value="">Select...</option>';
+            if (field.options) {
+                field.options.forEach(option => {
+                    options += `<option value="${option}">${option}</option>`;
+                });
+            }
+            inputHTML = `<select name="custom_${field.name}" class="form-control" ${required}>${options}</select>`;
+            break;
+        case 'textarea':
+            inputHTML = `<textarea name="custom_${field.name}" class="form-control" rows="3" ${required}></textarea>`;
+            break;
+        // Add more field types as needed
+    }
+    
+    return `
+        <div class="form-group">
+            <label class="form-label">${field.label} ${requiredLabel}</label>
+            ${inputHTML}
+            ${field.description ? `<small class="form-text text-muted">${field.description}</small>` : ''}
+        </div>
+    `;
+}
+
+function clearDepartmentForm() {
+    const formContainer = document.getElementById('departmentFormFields');
+    formContainer.style.display = 'none';
+    formContainer.innerHTML = '';
+}
+
+function findAvailableTutors() {
+    // Implementation for finding available tutors with current filters
+    alert('Finding available tutors for current filters...');
+}
+
+function startClass(classId) {
+    if (confirm('Start this class now?')) {
+        fetch(`/api/classes/${classId}/start`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+function rescheduleClass(classId) {
+    // Implementation for rescheduling
+    alert('Reschedule feature coming soon...');
+}
+
+function cancelClass(classId) {
+    const reason = prompt('Please provide a reason for cancellation:');
+    if (reason) {
+        fetch(`/api/classes/${classId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ reason: reason })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+function completeClass(classId) {
+    if (confirm('Mark this class as completed?')) {
+        fetch(`/api/classes/${classId}/complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+</script>
+
+<style>
+.scheduling-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px;
+}
+
+.filters-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.classes-list {
+    display: grid;
+    gap: 20px;
+}
+
+.class-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-left: 4px solid #dee2e6;
+}
+
+.class-card.status-scheduled {
+    border-left-color: #007bff;
+}
+
+.class-card.status-in_progress {
+    border-left-color: #28a745;
+}
+
+.class-card.status-completed {
+    border-left-color: #6c757d;
+}
+
+.class-card.status-cancelled {
+    border-left-color: #dc3545;
+}
+
+.class-header {
+    display: flex;
+    justify-content: between;
+    align-items: start;
+    margin-bottom: 16px;
+}
+
+.class-title h4 {
+    margin: 0;
+    color: #333;
+}
+
+.class-type {
+    display: inline-block;
+    background: #f8f9fa;
+    color: #6c757d;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-left: 12px;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.status-scheduled {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.status-badge.status-in_progress {
+    background: #e8f5e8;
+    color: #2e7d32;
+}
+
+.status-badge.status-completed {
+    background: #f5f5f5;
+    color: #616161;
+}
+
+.status-badge.status-cancelled {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.class-details {
+    margin-bottom: 20px;
+}
+
+.detail-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: #666;
+}
+
+.detail-row i {
+    width: 16px;
+    color: #F1A150;
+}
+
+.class-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tutors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.tutor-option {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tutor-option:hover {
+    border-color: #F1A150;
+    background: #fef8f3;
+}
+
+.tutor-option.selected {
+    border-color: #F1A150;
+    background: #fff8f3;
+}
+
+.tutor-avatar {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 12px;
+}
+
+.tutor-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.availability-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.availability-indicator.available {
+    background: #28a745;
+}
+
+.tutor-info {
+    text-align: center;
+}
+
+.tutor-info h5 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.tutor-info p {
+    margin: 4px 0;
+    font-size: 12px;
+    color: #666;
+}
+
+.tutor-rating {
+    font-size: 12px;
+    color: #F1A150;
+    font-weight: 600;
+}
+
+.no-tutors-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.no-tutors-message.error {
+    color: #dc3545;
+}
+
+.loading-tutors {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+
+.form-section {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+}
+
+.form-section h6 {
+    color: #333;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-section h6 i {
+    color: #F1A150;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.meeting-link {
+    color: #F1A150;
+    text-decoration: none;
+}
+
+.meeting-link:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tutors-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .class-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .class-actions {
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

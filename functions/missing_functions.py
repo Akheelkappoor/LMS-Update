@@ -129,48 +129,6 @@ def delete_user(user_id):
         db.session.rollback()
         return False, f"User deletion failed: {str(e)}"
 
-def get_user_dashboard_data(user):
-    """Get dashboard data based on user role"""
-    try:
-        if user.role == 'superadmin':
-            return get_superadmin_dashboard_data()
-        elif user.role == 'admin':
-            return get_admin_dashboard_data()
-        elif user.role == 'coordinator':
-            return get_coordinator_dashboard_data(user)
-        elif user.role == 'tutor':
-            return get_tutor_dashboard_data(user)
-        elif user.role == 'finance_coordinator':
-            return get_finance_dashboard_data(user)
-        else:
-            return get_default_dashboard_data()
-    except Exception as e:
-        print(f"Dashboard data error: {str(e)}")
-        return get_default_dashboard_data()
-
-def get_superadmin_dashboard_data():
-    """Get superadmin dashboard data"""
-    try:
-        total_users = User.query.filter_by(is_active=True).count()
-        total_departments = Department.query.filter_by(is_active=True).count()
-        total_students = Student.query.filter_by(status='active').count()
-        total_classes = Class.query.count()
-        pending_approvals = User.query.filter_by(is_approved=False, is_active=True).count()
-        
-        # Get recent registrations
-        recent_users = User.query.filter_by(is_active=True).order_by(User.created_at.desc()).limit(5).all()
-        
-        return {
-            'total_users': total_users,
-            'total_departments': total_departments,
-            'total_students': total_students,
-            'total_classes': total_classes,
-            'pending_approvals': pending_approvals,
-            'recent_users': recent_users,
-            'system_health': 'Excellent'
-        }
-    except Exception as e:
-        return {'error': str(e)}
 
 def get_admin_dashboard_data():
     """Get admin dashboard data"""
@@ -277,14 +235,6 @@ def get_finance_dashboard_data(user):
         }
     except Exception as e:
         return {'error': str(e)}
-
-def get_default_dashboard_data():
-    """Get default dashboard data"""
-    return {
-        'message': 'Welcome to the Learning Management System',
-        'total_classes': 0,
-        'total_students': 0
-    }
 
 def get_recent_activity():
     """Get recent system activity"""

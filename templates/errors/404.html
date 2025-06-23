@@ -10,11 +10,13 @@
         </div>
         <h1 class="error-code">404</h1>
         <h2 class="error-title">Page Not Found</h2>
-        <p class="error-message">The page you're looking for doesn't exist or has been moved.</p>
+        <p class="error-message">
+            The page you're looking for doesn't exist or has been moved.
+        </p>
         <div class="error-actions">
-            <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
                 <i class="fas fa-home"></i>
-                Return to Home
+                Go to Dashboard
             </a>
             <button onclick="history.back()" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i>
@@ -26,121 +28,116 @@
 
 <style>
 .error-container {
-    min-height: 100vh;
+    min-height: 80vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    text-align: center;
-    background: linear-gradient(135deg, rgba(241, 161, 80, 0.05), rgba(200, 103, 6, 0.05));
-    padding: 20px;
+    padding: 40px 20px;
 }
 
 .error-content {
+    text-align: center;
     max-width: 500px;
-    padding: 60px 40px;
-    background: white;
-    border-radius: 24px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    width: 100%;
 }
 
 .error-icon {
+    margin-bottom: 30px;
+}
+
+.error-icon i {
     font-size: 80px;
     color: #F1A150;
-    margin-bottom: 20px;
-    animation: shake 0.5s ease-in-out infinite;
+    opacity: 0.8;
 }
 
 .error-code {
     font-size: 120px;
     font-weight: 800;
-    background: linear-gradient(45deg, #F1A150, #C86706);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #F1A150;
+    margin: 0;
     line-height: 1;
-    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .error-title {
     font-size: 32px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 16px;
+    font-weight: 700;
+    color: #333;
+    margin: 20px 0 15px 0;
 }
 
 .error-message {
-    color: var(--text-secondary);
-    margin-bottom: 30px;
     font-size: 18px;
+    color: #666;
+    margin-bottom: 40px;
     line-height: 1.6;
 }
 
 .error-actions {
     display: flex;
-    gap: 16px;
+    gap: 15px;
     justify-content: center;
+    flex-wrap: wrap;
 }
 
 .btn {
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 24px;
-    border-radius: 12px;
-    font-weight: 500;
     transition: all 0.3s ease;
     border: none;
     cursor: pointer;
+    font-size: 16px;
 }
 
 .btn-primary {
-    background: linear-gradient(45deg, #F1A150, #C86706);
+    background: linear-gradient(135deg, #F1A150, #C86706);
     color: white;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(200, 103, 6, 0.2);
+    box-shadow: 0 8px 25px rgba(200, 103, 6, 0.3);
+    color: white;
+    text-decoration: none;
 }
 
 .btn-secondary {
-    background: #f8f9fa;
-    color: var(--text-primary);
+    background: #6C757D;
+    color: white;
 }
 
 .btn-secondary:hover {
-    background: #e9ecef;
+    background: #5a6268;
+    transform: translateY(-2px);
+    color: white;
 }
 
-@keyframes shake {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(-5deg); }
-    75% { transform: rotate(5deg); }
-}
-
-@media (max-width: 480px) {
-    .error-content {
-        padding: 40px 20px;
-    }
-
+@media (max-width: 768px) {
     .error-code {
         font-size: 80px;
     }
-
+    
     .error-title {
         font-size: 24px;
     }
-
+    
     .error-message {
         font-size: 16px;
     }
-
+    
     .error-actions {
         flex-direction: column;
+        align-items: center;
     }
-
+    
     .btn {
-        width: 100%;
+        width: 200px;
         justify-content: center;
     }
 }

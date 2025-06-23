@@ -1,7 +1,3 @@
-<!-- =============================================== -->
-<!-- UPDATE templates/users/create.html - Fix the form handling -->
-<!-- =============================================== -->
-
 {% extends "base.html" %}
 
 {% block title %}Create User - LMS{% endblock %}
@@ -315,6 +311,204 @@ function togglePassword() {
         toggleIcon.className = 'fas fa-eye';
     }
 }
+
+// Dynamic Form Loading for Department-Specific Forms
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentSelect = document.getElementById('userDepartment');
+    const roleSelect = document.getElementById('userRole');
+    let dynamicFormContainer = null;
+    
+    // Create container for dynamic form
+    createDynamicFormContainer();
+    
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', function() {
+            const departmentId = this.value;
+            const currentRole = roleSelect ? roleSelect.value : 'user';
+            
+            if (departmentId) {
+                loadDepartmentForm(departmentId, currentRole);
+            } else {
+                clearDynamicForm();
+            }
+        });
+    }
+    
+    if (roleSelect) {
+        roleSelect.addEventListener('change', function() {
+            const departmentId = departmentSelect ? departmentSelect.value : null;
+            const currentRole = this.value;
+            
+            if (departmentId) {
+                loadDepartmentForm(departmentId, currentRole);
+            }
+        });
+    }
+    
+    function createDynamicFormContainer() {
+        // Find insertion point after department card
+        const departmentCard = document.getElementById('departmentCard');
+        if (departmentCard) {
+            dynamicFormContainer = document.createElement('div');
+            dynamicFormContainer.id = 'departmentDynamicForm';
+            dynamicFormContainer.className = 'card mt-4';
+            dynamicFormContainer.style.display = 'none';
+            
+            // Insert after department card
+            departmentCard.insertAdjacentElement('afterend', dynamicFormContainer);
+        }
+    }
+    
+    function loadDepartmentForm(departmentId, role) {
+        if (!dynamicFormContainer) {
+            console.error('Dynamic form container not found');
+            return;
+        }
+        
+        // Show loading
+        dynamicFormContainer.innerHTML = `
+            <div class="card-body text-center">
+                <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                <p class="mt-2">Loading department form...</p>
+            </div>
+        `;
+        dynamicFormContainer.style.display = 'block';
+        
+        // Determine form type
+        const formType = (role === 'tutor') ? 'tutor' : 'user';
+        
+        // Fetch form
+        fetch(`/api/departments/${departmentId}/form?type=${formType}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('No form assigned');
+                }
+                return response.json();
+            })
+            .then(data => {
+                renderDepartmentForm(data.form);
+            })
+            .catch(error => {
+                console.log('No department form found');
+                clearDynamicForm();
+            });
+    }
+    
+    function renderDepartmentForm(form) {
+        if (!dynamicFormContainer || !form.fields || form.fields.length === 0) {
+            clearDynamicForm();
+            return;
+        }
+        
+        let fieldsHTML = '';
+        
+        form.fields.forEach(field => {
+            fieldsHTML += generateFieldHTML(field);
+        });
+        
+        dynamicFormContainer.innerHTML = `
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-form"></i>
+                    ${form.name}
+                </h3>
+                ${form.description ? `<p class="card-description">${form.description}</p>` : ''}
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    ${fieldsHTML}
+                </div>
+            </div>
+        `;
+        
+        dynamicFormContainer.style.display = 'block';
+    }
+    
+    function generateFieldHTML(field) {
+        const required = field.required ? 'required' : '';
+        const requiredLabel = field.required ? '<span class="text-danger">*</span>' : '';
+        
+        let inputHTML = '';
+        
+        switch(field.type) {
+            case 'text':
+            case 'email':
+            case 'tel':
+            case 'url':
+                inputHTML = `<input type="${field.type}" name="custom_${field.name}" class="form-control" ${required}>`;
+                break;
+                
+            case 'number':
+                inputHTML = `<input type="number" name="custom_${field.name}" class="form-control" ${required}>`;
+                break;
+                
+            case 'date':
+                inputHTML = `<input type="date" name="custom_${field.name}" class="form-control" ${required}>`;
+                break;
+                
+            case 'textarea':
+                inputHTML = `<textarea name="custom_${field.name}" class="form-control" rows="3" ${required}></textarea>`;
+                break;
+                
+            case 'select':
+                let options = '<option value="">Select...</option>';
+                if (field.options) {
+                    field.options.forEach(option => {
+                        options += `<option value="${option}">${option}</option>`;
+                    });
+                }
+                inputHTML = `<select name="custom_${field.name}" class="form-control" ${required}>${options}</select>`;
+                break;
+                
+            case 'radio':
+                if (field.options) {
+                    field.options.forEach(option => {
+                        inputHTML += `
+                            <div class="form-check">
+                                <input type="radio" name="custom_${field.name}" value="${option}" class="form-check-input" ${required}>
+                                <label class="form-check-label">${option}</label>
+                            </div>
+                        `;
+                    });
+                }
+                break;
+                
+            case 'checkbox':
+                if (field.options) {
+                    field.options.forEach(option => {
+                        inputHTML += `
+                            <div class="form-check">
+                                <input type="checkbox" name="custom_${field.name}[]" value="${option}" class="form-check-input">
+                                <label class="form-check-label">${option}</label>
+                            </div>
+                        `;
+                    });
+                }
+                break;
+                
+            case 'file':
+                inputHTML = `<input type="file" name="custom_file_${field.name}" class="form-control" ${required}>`;
+                break;
+        }
+        
+        return `
+            <div class="col-md-6 mb-3">
+                <div class="form-group">
+                    <label class="form-label">${field.label} ${requiredLabel}</label>
+                    ${inputHTML}
+                    ${field.description ? `<small class="form-text text-muted">${field.description}</small>` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    function clearDynamicForm() {
+        if (dynamicFormContainer) {
+            dynamicFormContainer.style.display = 'none';
+            dynamicFormContainer.innerHTML = '';
+        }
+    }
+});
 </script>
 
 <style>

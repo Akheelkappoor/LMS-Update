@@ -696,3 +696,466 @@ def bulk_update_classes(class_ids, update_data):
     except Exception as e:
         db.session.rollback()
         return False, f"Bulk update failed: {str(e)}"
+
+# Add these functions to functions/class_functions.py
+
+def create_class_session(class_data):
+    """Create a new class session"""
+    try:
+        # Validate required fields
+        required_fields = ['subject', 'student_id', 'tutor_id', 'class_date', 'start_time', 'end_time']
+        for field in required_fields:
+            if not class_data.get(field):
+                return False, f"{field.replace('_', ' ').title()} is required."
+        
+        # Check if student enrollment exists or create one
+        student_id = int(class_data['student_id'])
+        tutor_id = int(class_data['tutor_id'])
+        
+        # Find or create enrollment
+        enrollment = StudentEnrollment.query.filter_by(
+            student_id=student_id,
+            tutor_id=tutor_id,
+            subject=class_data['subject'],
+            status='active'
+        ).first()
+        
+        if not enrollment:
+            # Create new enrollment
+            enrollment = StudentEnrollment(
+                student_id=student_id,
+                tutor_id=tutor_id,
+                subject=class_data['subject'],
+                start_date=datetime.strptime(class_data['class_date'], '%Y-%m-%d').date(),
+                status='active',
+                created_by=current_user.id if current_user.is_authenticated else None
+            )
+            db.session.add(enrollment)
+            db.session.flush()  # Get enrollment ID
+        
+        # Parse date and times
+        class_date = datetime.strptime(class_data['class_date'], '%Y-%m-%d').date()
+        start_time = datetime.strptime(class_data['start_time'], '%H:%M').time()
+        end_time = datetime.strptime(class_data['end_time'], '%H:%M').time()
+        
+        # Validate time logic
+        if start_time >= end_time:
+            return False, "End time must be after start time."
+        
+        # Check for scheduling conflicts
+        conflict = Class.query.filter(
+            Class.tutor_id == tutor_id,
+            Class.class_date == class_date,
+            Class.status.in_(['scheduled', 'in_progress']),
+            or_(
+                and_(Class.start_time <= start_time, Class.end_time > start_time),
+                and_(Class.start_time < end_time, Class.end_time >= end_time),
+                and_(Class.start_time >= start_time, Class.end_time <= end_time)
+            )
+        ).first()
+        
+        if conflict:
+            return False, f"Tutor has a scheduling conflict at {conflict.start_time.strftime('%H:%M')}-{conflict.end_time.strftime('%H:%M')}."
+        # Create the class
+        new_class = Class(
+            enrollment_id=enrollment.id,
+            tutor_id=tutor_id,
+            subject=class_data['subject'],
+            class_date=class_date,
+            start_time=start_time,
+            end_time=end_time,
+            topic_covered=class_data.get('topic_covered'),
+            class_notes=class_data.get('class_notes'),
+            meeting_link=class_data.get('meeting_link'),
+            meeting_id=class_data.get('meeting_id'),
+            meeting_password=class_data.get('meeting_password'),
+            status='scheduled'
+        )
+        
+        db.session.add(new_class)
+        db.session.commit()
+        
+        return True, f"Class scheduled successfully for {class_date.strftime('%B %d, %Y')} at {start_time.strftime('%I:%M %p')}."
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Class creation failed: {str(e)}"
+
+def start_class_session(class_id):
+    """Start a class session"""
+    try:
+        class_obj = Class.query.get(class_id)
+        if not class_obj:
+            return False, "Class not found."
+        
+        if class_obj.status != 'scheduled':
+            return False, f"Cannot start class with status '{class_obj.status}'."
+        
+        # Update class status
+        class_obj.status = 'in_progress'
+        class_obj.actual_start_time = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return True, "Class started successfully."
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Failed to start class: {str(e)}"
+
+def cancel_class_session(class_id, reason=""):
+    """Cancel a class session"""
+    try:
+        class_obj = Class.query.get(class_id)
+        if not class_obj:
+            return False, "Class not found."
+        
+        if class_obj.status in ['completed', 'cancelled']:
+            return False, f"Cannot cancel class with status '{class_obj.status}'."
+        
+        # Update class status
+        class_obj.status = 'cancelled'
+        if reason:
+            class_obj.class_notes = f"{class_obj.class_notes or ''}\nCancellation reason: {reason}".strip()
+        
+        db.session.commit()
+        
+        # Send notifications to participants
+        from functions.notification_functions import create_system_notification
+        
+        # Notify student
+        if class_obj.enrollment and class_obj.enrollment.student:
+            create_system_notification({
+                'type': 'class_cancelled',
+                'title': 'Class Cancelled',
+                'message': f'Your {class_obj.subject} class on {class_obj.class_date.strftime("%B %d, %Y")} has been cancelled.',
+                'priority': 'high',
+                'recipient_type': 'user',
+                'recipient_id': class_obj.enrollment.student.id,
+                'related_entity_type': 'class',
+                'related_entity_id': class_id
+            })
+        
+        # Notify tutor if not the one cancelling
+        if class_obj.tutor and (not current_user.is_authenticated or current_user.id != class_obj.tutor_id):
+            create_system_notification({
+                'type': 'class_cancelled',
+                'title': 'Class Cancelled',
+                'message': f'Your {class_obj.subject} class on {class_obj.class_date.strftime("%B %d, %Y")} has been cancelled.',
+                'priority': 'high',
+                'recipient_type': 'user',
+                'recipient_id': class_obj.tutor_id,
+                'related_entity_type': 'class',
+                'related_entity_id': class_id
+            })
+        
+        return True, "Class cancelled successfully."
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Failed to cancel class: {str(e)}"
+
+def complete_class_session(class_id, completion_data):
+    """Complete a class session"""
+    try:
+        class_obj = Class.query.get(class_id)
+        if not class_obj:
+            return False, "Class not found."
+        
+        if class_obj.status not in ['in_progress', 'scheduled']:
+            return False, f"Cannot complete class with status '{class_obj.status}'."
+        
+        # Update class with completion data
+        class_obj.status = 'completed'
+        class_obj.actual_end_time = datetime.utcnow()
+        
+        if 'topic_covered' in completion_data:
+            class_obj.topic_covered = completion_data['topic_covered']
+        
+        if 'homework_assigned' in completion_data:
+            class_obj.homework_assigned = completion_data['homework_assigned']
+        
+        if 'class_notes' in completion_data:
+            class_obj.class_notes = completion_data['class_notes']
+        
+        if 'recording_link' in completion_data:
+            class_obj.recording_link = completion_data['recording_link']
+        
+        db.session.commit()
+        
+        return True, "Class completed successfully."
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Failed to complete class: {str(e)}"
+
+def update_class_session(class_id, class_data):
+    """Update a class session"""
+    try:
+        class_obj = Class.query.get(class_id)
+        if not class_obj:
+            return False, "Class not found."
+        
+        # Update allowed fields
+        if 'subject' in class_data:
+            class_obj.subject = class_data['subject']
+        
+        if 'topic_covered' in class_data:
+            class_obj.topic_covered = class_data['topic_covered']
+        
+        if 'class_notes' in class_data:
+            class_obj.class_notes = class_data['class_notes']
+        
+        if 'homework_assigned' in class_data:
+            class_obj.homework_assigned = class_data['homework_assigned']
+        
+        if 'meeting_link' in class_data:
+            class_obj.meeting_link = class_data['meeting_link']
+        
+        if 'meeting_id' in class_data:
+            class_obj.meeting_id = class_data['meeting_id']
+        
+        if 'meeting_password' in class_data:
+            class_obj.meeting_password = class_data['meeting_password']
+        
+        if 'recording_link' in class_data:
+            class_obj.recording_link = class_data['recording_link']
+        
+        if 'status' in class_data:
+            class_obj.status = class_data['status']
+        
+        # Handle schedule changes
+        if 'class_date' in class_data:
+            class_obj.class_date = datetime.strptime(class_data['class_date'], '%Y-%m-%d').date()
+        
+        if 'start_time' in class_data:
+            class_obj.start_time = datetime.strptime(class_data['start_time'], '%H:%M').time()
+        
+        if 'end_time' in class_data:
+            class_obj.end_time = datetime.strptime(class_data['end_time'], '%H:%M').time()
+        
+        db.session.commit()
+        
+        return True, "Class updated successfully."
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Class update failed: {str(e)}"
+
+def delete_class_session(class_id):
+    """Delete a class session"""
+    try:
+        class_obj = Class.query.get(class_id)
+        if not class_obj:
+            return False, "Class not found."
+        
+        if class_obj.status in ['completed', 'in_progress']:
+            return False, f"Cannot delete class with status '{class_obj.status}'."
+        
+        # Delete related attendance records
+        StudentAttendance.query.filter_by(class_session_id=class_id).delete()
+        
+        # Delete the class
+        db.session.delete(class_obj)
+        db.session.commit()
+        
+        return True, "Class deleted successfully."
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Class deletion failed: {str(e)}"
+    
+def create_class_session(class_data):
+    """Create a new class session with conflict checking"""
+    try:
+        from models import Class, StudentEnrollment, User, db
+        from datetime import datetime, timedelta
+        
+        # Parse date and time
+        class_date = datetime.strptime(class_data['class_date'], '%Y-%m-%d').date()
+        start_time = datetime.strptime(class_data['start_time'], '%H:%M').time()
+        
+        # Calculate end time
+        duration_minutes = class_data['duration']
+        start_datetime = datetime.combine(class_date, start_time)
+        end_datetime = start_datetime + timedelta(minutes=duration_minutes)
+        end_time = end_datetime.time()
+        
+        # Get or create enrollment
+        enrollment = StudentEnrollment.query.filter_by(
+            student_id=class_data['student_id'],
+            subject=class_data['subject'],
+            status='active'
+        ).first()
+        
+        if not enrollment:
+            # Create new enrollment
+            enrollment = StudentEnrollment(
+                student_id=class_data['student_id'],
+                subject=class_data['subject'],
+                tutor_id=class_data['tutor_id'],
+                enrollment_date=class_date,
+                status='active'
+            )
+            db.session.add(enrollment)
+            db.session.flush()  # Get the ID
+        
+        # Check for tutor conflicts
+        tutor_id = class_data['tutor_id']
+        conflict = Class.query.filter(
+            Class.tutor_id == tutor_id,
+            Class.class_date == class_date,
+            Class.status.in_(['scheduled', 'in_progress']),
+            db.or_(
+                db.and_(Class.start_time <= start_time, Class.end_time > start_time),
+                db.and_(Class.start_time < end_time, Class.end_time >= end_time),
+                db.and_(Class.start_time >= start_time, Class.end_time <= end_time)
+            )
+        ).first()
+        
+        if conflict:
+            return False, f"Tutor has a scheduling conflict at {conflict.start_time.strftime('%H:%M')}-{conflict.end_time.strftime('%H:%M')}."
+        
+        # Check student conflicts
+        student_conflict = Class.query.join(StudentEnrollment).filter(
+            StudentEnrollment.student_id == class_data['student_id'],
+            Class.class_date == class_date,
+            Class.status.in_(['scheduled', 'in_progress']),
+            db.or_(
+                db.and_(Class.start_time <= start_time, Class.end_time > start_time),
+                db.and_(Class.start_time < end_time, Class.end_time >= end_time),
+                db.and_(Class.start_time >= start_time, Class.end_time <= end_time)
+            )
+        ).first()
+        
+        if student_conflict:
+            return False, f"Student has a scheduling conflict at {student_conflict.start_time.strftime('%H:%M')}-{student_conflict.end_time.strftime('%H:%M')}."
+        
+        # Create the class
+        new_class = Class(
+            enrollment_id=enrollment.id,
+            tutor_id=tutor_id,
+            subject=class_data['subject'],
+            class_date=class_date,
+            start_time=start_time,
+            end_time=end_time,
+            topic_covered=class_data.get('topic_covered'),
+            class_notes=class_data.get('class_notes'),
+            meeting_link=class_data.get('meeting_link'),
+            meeting_id=class_data.get('meeting_id'),
+            meeting_password=class_data.get('meeting_password'),
+            class_type=class_data.get('class_type', 'regular'),
+            status='scheduled'
+        )
+        
+        # Add custom fields if provided
+        if 'custom_fields' in class_data:
+            import json
+            new_class.custom_fields = json.dumps(class_data['custom_fields'])
+        
+        db.session.add(new_class)
+        db.session.commit()
+        
+        return True, f"Class scheduled successfully for {class_date.strftime('%B %d, %Y')} at {start_time.strftime('%I:%M %p')}."
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Class creation failed: {str(e)}"
+
+def complete_class_session(class_id):
+    """Complete a class session"""
+    try:
+        from models import Class, db
+        
+        class_obj = Class.query.get(class_id)
+        if not class_obj:
+            return False, "Class not found."
+        
+        if class_obj.status != 'in_progress':
+            return False, f"Cannot complete class with status '{class_obj.status}'."
+        
+        # Update class status
+        class_obj.status = 'completed'
+        class_obj.actual_end_time = datetime.utcnow()
+        
+        # Update enrollment progress
+        if class_obj.enrollment:
+            class_obj.enrollment.completed_sessions += 1
+        
+        db.session.commit()
+        
+        return True, "Class completed successfully."
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Failed to complete class: {str(e)}"
+
+# ADD to functions/tutor_functions.py:
+
+def find_available_tutors_for_slot(criteria):
+    """Find tutors available for a specific time slot"""
+    try:
+        from models import User, TutorProfile, Class, db
+        from datetime import datetime, time
+        
+        subject = criteria['subject']
+        date = criteria['date']
+        start_time = criteria['start_time']
+        
+        # Parse time
+        slot_time = datetime.strptime(start_time, '%H:%M').time()
+        slot_date = datetime.strptime(date, '%Y-%m-%d').date()
+        day_name = slot_date.strftime('%A').lower()
+        
+        # Find tutors who teach this subject
+        tutors = User.query.join(TutorProfile).filter(
+            User.role == 'tutor',
+            User.is_active == True,
+            TutorProfile.application_status == 'approved',
+            TutorProfile.availability_status == 'available',
+            TutorProfile.specialization.contains(subject)
+        ).all()
+        
+        available_tutors = []
+        
+        for tutor in tutors:
+            # Check if tutor is available on this day/time
+            if tutor.tutor_profile.is_available_at(day_name, start_time):
+                # Check for existing bookings
+                existing_class = Class.query.filter(
+                    Class.tutor_id == tutor.id,
+                    Class.class_date == slot_date,
+                    Class.status.in_(['scheduled', 'in_progress']),
+                    Class.start_time <= slot_time,
+                    Class.end_time > slot_time
+                ).first()
+                
+                if not existing_class:
+                    available_tutors.append(tutor)
+        
+        return available_tutors
+        
+    except Exception as e:
+        print(f"Error finding available tutors: {str(e)}")
+        return []
+
+def update_tutor_availability(tutor_id, availability_data):
+    """Update tutor's weekly availability"""
+    try:
+        from models import User, TutorProfile, db
+        
+        tutor = User.query.get(tutor_id)
+        if not tutor or not tutor.tutor_profile:
+            return False, "Tutor not found."
+        
+        tutor_profile = tutor.tutor_profile
+        tutor_profile.set_weekly_schedule(availability_data)
+        tutor_profile.last_availability_update = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return True, "Availability updated successfully."
+        
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Failed to update availability: {str(e)}"

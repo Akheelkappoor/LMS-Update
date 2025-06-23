@@ -97,3 +97,10 @@ class Department(db.Model):
     
     def __repr__(self):
         return f'<Department {self.name}>'
+    
+def get_student_form(self):
+    """Get student registration form for this department"""
+    from .form_template import FormTemplate
+    if self.user_form_id:  # Using user_form_id for student forms
+        return FormTemplate.query.get(self.user_form_id)
+    return None

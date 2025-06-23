@@ -1,471 +1,273 @@
 {% extends "base.html" %}
 
-{% block title %}Payroll Management - LMS{% endblock %}
+{% block title %}Late Arrivals Report - Finance{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-    <!-- Header -->
-    <div class="dashboard-header">
-        <h1 class="dashboard-title">
-            <i class="fas fa-money-bill-wave"></i> Payroll Management
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="fas fa-clock"></i>
+            Late Arrivals Report
         </h1>
-        <p class="dashboard-subtitle">Manage tutor payments and salary processing</p>
+        <p class="page-subtitle">Track tutor punctuality and payroll deductions</p>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions-bar">
-        <button class="btn btn-primary" onclick="generatePayroll()">
-            <i class="fas fa-calculator"></i> Generate Payroll
-        </button>
-        <button class="btn btn-success" onclick="exportPayroll()">
-            <i class="fas fa-file-excel"></i> Export to Excel
-        </button>
-        <button class="btn btn-info" onclick="sendPayslips()">
-            <i class="fas fa-envelope"></i> Send Payslips
-        </button>
-        <button class="btn btn-warning" onclick="reviewPenalties()">
-            <i class="fas fa-exclamation-triangle"></i> Review Penalties
-        </button>
-    </div>
-
-    <!-- Payroll Period Selection -->
+    <!-- Period Selection -->
     <div class="card mb-4">
         <div class="card-header">
-            <h2 class="card-title">
-                <i class="fas fa-calendar"></i>
-                Payroll Period
-            </h2>
+            <h3>Report Period</h3>
         </div>
         <div class="card-body">
-            <form method="GET" class="payroll-filter">
-                <div class="form-group">
-                    <label for="month">Month:</label>
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="month" class="form-label">Month:</label>
                     <select id="month" name="month" class="form-control">
                         {% for i in range(1, 13) %}
-                        <option value="{{ i }}" {% if i == current_month %}selected{% endif %}>
+                        <option value="{{ i }}" {% if i == (current_month or 1) %}selected{% endif %}>
                             {{ ['January', 'February', 'March', 'April', 'May', 'June',
                                 'July', 'August', 'September', 'October', 'November', 'December'][i-1] }}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="year">Year:</label>
+                <div class="col-md-4">
+                    <label for="year" class="form-label">Year:</label>
                     <select id="year" name="year" class="form-control">
                         {% for year in range(2023, 2026) %}
-                        <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>{{ year }}</option>
+                        <option value="{{ year }}" {% if year == (current_year or 2025) %}selected{% endif %}>{{ year }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-search"></i> Load Payroll
-                </button>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary d-block">
+                        <i class="fas fa-search"></i> Load Report
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 
-    <!-- Payroll Summary -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon primary">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="stat-content">
-                <div class="stat-value">{{ payroll_summary.total_tutors or 0 }}</div>
-                <div class="stat-label">Active Tutors</div>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon success">
-                <i class="fas fa-dollar-sign"></i>
-            </div>
-            <div class="stat-content">
-                <div class="stat-value">${{ "%.2f"|format(payroll_summary.total_earnings or 0) }}</div>
-                <div class="stat-label">Total Earnings</div>
+    <!-- Statistics Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                    <h3>{{ (stats.incident_count if stats else 0) or 0 }}</h3>
+                    <p class="text-muted">Late Incidents</p>
+                </div>
             </div>
         </div>
-
-        <div class="stat-card">
-            <div class="stat-icon danger">
-                <i class="fas fa-minus-circle"></i>
-            </div>
-            <div class="stat-content">
-                <div class="stat-value">${{ "%.2f"|format(payroll_summary.total_penalties or 0) }}</div>
-                <div class="stat-label">Total Penalties</div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-dollar-sign fa-2x text-danger mb-2"></i>
+                    <h3>${{ "%.2f"|format((stats.total_penalties if stats else 0) or 0) }}</h3>
+                    <p class="text-muted">Total Penalties</p>
+                </div>
             </div>
         </div>
-
-        <div class="stat-card">
-            <div class="stat-icon info">
-                <i class="fas fa-hand-holding-usd"></i>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                    <h3>{{ "%.1f"|format((stats.avg_late_minutes if stats else 0) or 0) }}</h3>
+                    <p class="text-muted">Avg Late Minutes</p>
+                </div>
             </div>
-            <div class="stat-content">
-                <div class="stat-value">${{ "%.2f"|format(payroll_summary.net_payable or 0) }}</div>
-                <div class="stat-label">Net Payable</div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                    <h3>{{ "%.1f"|format(((stats.total_penalties / stats.incident_count) if stats and stats.incident_count and stats.incident_count > 0 else 0) or 0) }}</h3>
+                    <p class="text-muted">Avg Penalty</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Tutor Payroll Details -->
+    <!-- Late Arrivals Details -->
     <div class="card">
         <div class="card-header">
-            <h2 class="card-title">
-                <i class="fas fa-list"></i>
-                Tutor Payroll Details
-            </h2>
-            <div class="card-actions">
-                <button class="btn btn-sm btn-outline-primary" onclick="selectAll()">
-                    Select All
-                </button>
-                <button class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
-                    Clear All
-                </button>
-            </div>
+            <h3>Late Arrival Details</h3>
         </div>
         <div class="card-body">
-            {% if tutors_payroll %}
-                <div class="table-responsive">
-                    <table class="table" id="payrollTable">
-                        <thead>
-                            <tr>
-                                <th>
-                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
-                                </th>
-                                <th>Tutor</th>
-                                <th>Hours Worked</th>
-                                <th>Hourly Rate</th>
-                                <th>Gross Earnings</th>
-                                <th>Penalties</th>
-                                <th>Net Pay</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for tutor_data in tutors_payroll %}
-                            <tr>
-                                <td>
-                                    <input type="checkbox" class="tutor-checkbox" value="{{ tutor_data.tutor.id }}">
-                                </td>
-                                <td>
-                                    <div class="tutor-info">
-                                        <strong>{{ tutor_data.tutor.full_name or tutor_data.tutor.username }}</strong>
-                                        <div class="text-muted">{{ tutor_data.tutor.email }}</div>
-                                        {% if tutor_data.tutor.department %}
-                                        <div class="department-badge">{{ tutor_data.tutor.department.name }}</div>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td>{{ "%.1f"|format(tutor_data.hours_worked or 0) }}h</td>
-                                <td>${{ "%.2f"|format(tutor_data.tutor.hourly_rate or 0) }}</td>
-                                <td>${{ "%.2f"|format(tutor_data.gross_earnings or 0) }}</td>
-                                <td>
-                                    {% if tutor_data.total_penalties > 0 %}
-                                        <span class="penalty-amount">-${{ "%.2f"|format(tutor_data.total_penalties) }}</span>
-                                        <button class="btn btn-sm btn-outline-warning" onclick="viewPenalties('{{ tutor_data.tutor.id }}')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    {% else %}
-                                        <span class="text-success">$0.00</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <strong class="net-pay">${{ "%.2f"|format(tutor_data.net_pay or 0) }}</strong>
-                                </td>
-                                <td>
-                                    <span class="status-badge {{ tutor_data.status }}">
-                                        {{ tutor_data.status.replace('_', ' ').title() }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn btn-sm btn-info" onclick="viewDetails('{{ tutor_data.tutor.id }}')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-primary" onclick="generatePayslip('{{ tutor_data.tutor.id }}')">
-                                            <i class="fas fa-file-alt"></i>
-                                        </button>
-                                        {% if tutor_data.status == 'pending' %}
-                                        <button class="btn btn-sm btn-success" onclick="approvePayment('{{ tutor_data.tutor.id }}')">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Bulk Actions -->
-                <div class="bulk-actions mt-3">
-                    <button class="btn btn-success" onclick="bulkApprove()">
-                        <i class="fas fa-check-double"></i> Approve Selected
-                    </button>
-                    <button class="btn btn-primary" onclick="bulkGeneratePayslips()">
-                        <i class="fas fa-file-alt"></i> Generate Payslips
-                    </button>
-                    <button class="btn btn-warning" onclick="bulkSendEmails()">
-                        <i class="fas fa-envelope"></i> Send Emails
-                    </button>
-                </div>
+            {% if late_arrivals %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Tutor</th>
+                            <th>Scheduled Time</th>
+                            <th>Actual Time</th>
+                            <th>Minutes Late</th>
+                            <th>Penalty Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for arrival in late_arrivals %}
+                        <tr>
+                            <td>{{ arrival.recorded_at.strftime('%b %d, %Y') if arrival.recorded_at else 'N/A' }}</td>
+                            <td>
+                                <strong>{{ arrival.tutor.full_name or arrival.tutor.username if arrival.tutor else 'Unknown' }}</strong>
+                                <br><small class="text-muted">{{ arrival.tutor.email if arrival.tutor else '' }}</small>
+                                {% if arrival.tutor and arrival.tutor.department %}
+                                <br><span class="badge badge-secondary">{{ arrival.tutor.department.name }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ arrival.scheduled_time.strftime('%H:%M') if arrival.scheduled_time else 'N/A' }}</td>
+                            <td>{{ arrival.actual_arrival_time.strftime('%H:%M') if arrival.actual_arrival_time else 'N/A' }}</td>
+                            <td>
+                                <span class="badge badge-{{ 'danger' if (arrival.late_minutes or 0) > 15 else 'warning' }}">
+                                    {{ arrival.late_minutes or 0 }} min
+                                </span>
+                            </td>
+                            <td>
+                                <strong>${{ "%.2f"|format(arrival.penalty_amount or 0) }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ 'success' if arrival.approval_status == 'approved' else 'warning' if arrival.approval_status == 'pending' else 'secondary' }}">
+                                    {{ arrival.approval_status|title if arrival.approval_status else 'Pending' }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if arrival.approval_status == 'pending' %}
+                                <button class="btn btn-sm btn-success" onclick="approveArrival('{{ arrival.id }}')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="waiveArrival('{{ arrival.id }}')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-info" onclick="viewDetails('{{ arrival.id }}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <h3>No Payroll Data</h3>
-                    <p>No payroll data found for the selected period.</p>
-                    <button class="btn btn-primary" onclick="generatePayroll()">
-                        <i class="fas fa-calculator"></i> Generate Payroll
-                    </button>
-                </div>
+            <div class="alert alert-success text-center">
+                <i class="fas fa-check-circle fa-2x mb-3"></i>
+                <h4>No Late Arrivals!</h4>
+                <p>All tutors were punctual during this period.</p>
+            </div>
             {% endif %}
         </div>
     </div>
 
-    <!-- Payment Processing -->
-    <div class="card mt-4">
-        <div class="card-header">
-            <h2 class="card-title">
-                <i class="fas fa-credit-card"></i>
-                Payment Processing
-            </h2>
-        </div>
-        <div class="card-body">
-            <div class="payment-methods">
-                <div class="payment-method">
-                    <h4><i class="fas fa-university"></i> Bank Transfer</h4>
-                    <p>Process payments via bank transfer (recommended)</p>
-                    <button class="btn btn-primary" onclick="processBankTransfers()">
-                        Process Bank Transfers
-                    </button>
-                </div>
-                <div class="payment-method">
-                    <h4><i class="fas fa-money-check"></i> Manual Payment</h4>
-                    <p>Mark payments as processed manually</p>
-                    <button class="btn btn-secondary" onclick="markManualPayments()">
-                        Mark as Paid
-                    </button>
-                </div>
-                <div class="payment-method">
-                    <h4><i class="fas fa-file-export"></i> Export for Accounting</h4>
-                    <p>Export payroll data for accounting software</p>
-                    <button class="btn btn-info" onclick="exportForAccounting()">
-                        Export Data
-                    </button>
-                </div>
-            </div>
-        </div>
+    <!-- Navigation -->
+    <div class="mt-4">
+        <a href="{{ url_for('finance_dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Back to Finance Dashboard
+        </a>
+        {% if late_arrivals %}
+        <button class="btn btn-info" onclick="exportReport()">
+            <i class="fas fa-file-excel"></i>
+            Export Report
+        </button>
+        {% endif %}
     </div>
 </div>
 
 <style>
-.quick-actions-bar {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-}
-
-.payroll-filter {
-    display: flex;
-    gap: 16px;
-    align-items: end;
-}
-
-.payroll-filter .form-group {
-    min-width: 120px;
-}
-
-.tutor-info {
-    min-width: 200px;
-}
-
-.department-badge {
-    background: var(--primary-light);
-    color: var(--primary-color);
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 500;
-    display: inline-block;
-    margin-top: 4px;
-}
-
-.penalty-amount {
-    color: var(--danger-color);
-    font-weight: 600;
-}
-
-.net-pay {
-    color: var(--success-color);
-    font-size: 16px;
-}
-
-.status-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.status-badge.pending {
-    background: var(--warning-light);
-    color: var(--warning-color);
-}
-
-.status-badge.approved {
-    background: var(--success-light);
-    color: var(--success-color);
-}
-
-.status-badge.paid {
-    background: var(--primary-light);
-    color: var(--primary-color);
-}
-
-.action-buttons {
-    display: flex;
-    gap: 4px;
-}
-
-.bulk-actions {
-    border-top: 1px solid var(--border-color);
-    padding-top: 16px;
-    display: flex;
-    gap: 12px;
-}
-
-.payment-methods {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 24px;
-}
-
-.payment-method {
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 20px;
+.page-header {
+    margin-bottom: 2rem;
     text-align: center;
 }
 
-.payment-method h4 {
-    color: var(--primary-color);
-    margin-bottom: 8px;
+.page-title {
+    color: #333;
+    margin-bottom: 0.5rem;
 }
 
-.payment-method i {
-    margin-right: 8px;
+.page-subtitle {
+    color: #666;
+    margin: 0;
 }
 
-.card-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 40px;
-    color: var(--text-secondary);
-}
-
-.empty-state i {
-    font-size: 48px;
-    margin-bottom: 16px;
-    color: var(--primary-color);
-}
-
-.table th {
-    background: var(--light-color);
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     border: none;
-    font-weight: 600;
-    padding: 16px 12px;
+    border-radius: 8px;
 }
 
-.table td {
-    border: none;
-    padding: 12px;
-    vertical-align: middle;
+.card-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 8px 8px 0 0 !important;
 }
 
-.table tbody tr {
-    border-bottom: 1px solid var(--border-color);
+.badge-secondary {
+    background-color: #6c757d;
 }
 
-.table tbody tr:hover {
-    background: var(--light-color);
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
 }
 
-@media (max-width: 768px) {
-    .quick-actions-bar {
-        flex-direction: column;
-    }
-    
-    .payroll-filter {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .bulk-actions {
-        flex-direction: column;
-    }
+.badge-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}
+
+.text-success {
+    color: #28a745 !important;
+}
+
+.text-info {
+    color: #17a2b8 !important;
+}
+
+.text-warning {
+    color: #ffc107 !important;
 }
 </style>
 
 <script>
-function generatePayroll() {
-    if (confirm('Generate payroll for the selected period?')) {
-        const month = document.getElementById('month').value;
-        const year = document.getElementById('year').value;
-        
-        fetch('/finance/payroll/generate', {
+function approveArrival(arrivalId) {
+    if (confirm('Approve this late arrival penalty?')) {
+        fetch(`/finance/late-arrivals/${arrivalId}/approve`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ month: month, year: year })
+            }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Payroll generated successfully!');
                 location.reload();
             } else {
-                alert('Error generating payroll: ' + data.message);
+                alert('Error: ' + data.message);
             }
+        })
+        .catch(error => {
+            alert('Error processing request');
         });
     }
 }
 
-function exportPayroll() {
-    const month = document.getElementById('month').value;
-    const year = document.getElementById('year').value;
-    window.location.href = `/finance/payroll/export?month=${month}&year=${year}`;
-}
-
-function viewDetails(tutorId) {
-    const month = document.getElementById('month').value;
-    const year = document.getElementById('year').value;
-    window.location.href = `/finance/payroll/tutor/${tutorId}?month=${month}&year=${year}`;
-}
-
-function viewPenalties(tutorId) {
-    const month = document.getElementById('month').value;
-    const year = document.getElementById('year').value;
-    window.location.href = `/finance/penalties/tutor/${tutorId}?month=${month}&year=${year}`;
-}
-
-function generatePayslip(tutorId) {
-    const month = document.getElementById('month').value;
-    const year = document.getElementById('year').value;
-    window.open(`/finance/payslip/${tutorId}?month=${month}&year=${year}`, '_blank');
-}
-
-function approvePayment(tutorId) {
-    if (confirm('Approve payment for this tutor?')) {
-        fetch(`/finance/payroll/approve/${tutorId}`, {
+function waiveArrival(arrivalId) {
+    if (confirm('Waive this late arrival penalty?')) {
+        fetch(`/finance/late-arrivals/${arrivalId}/waive`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -474,172 +276,25 @@ function approvePayment(tutorId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Payment approved!');
                 location.reload();
             } else {
-                alert('Error approving payment: ' + data.message);
-            }
-        });
-    }
-}
-
-function toggleSelectAll() {
-    const selectAll = document.getElementById('selectAllCheckbox');
-    const checkboxes = document.querySelectorAll('.tutor-checkbox');
-    
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
-    });
-}
-
-function selectAll() {
-    document.getElementById('selectAllCheckbox').checked = true;
-    toggleSelectAll();
-}
-
-function clearSelection() {
-    document.getElementById('selectAllCheckbox').checked = false;
-    toggleSelectAll();
-}
-
-function getSelectedTutors() {
-    const checkboxes = document.querySelectorAll('.tutor-checkbox:checked');
-    return Array.from(checkboxes).map(cb => cb.value);
-}
-
-function bulkApprove() {
-    const selectedTutors = getSelectedTutors();
-    if (selectedTutors.length === 0) {
-        alert('Please select tutors to approve.');
-        return;
-    }
-    
-    if (confirm(`Approve payments for ${selectedTutors.length} selected tutors?`)) {
-        fetch('/finance/payroll/bulk-approve', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ tutor_ids: selectedTutors })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Payments approved successfully!');
-                location.reload();
-            } else {
-                alert('Error approving payments: ' + data.message);
-            }
-        });
-    }
-}
-
-function bulkGeneratePayslips() {
-    const selectedTutors = getSelectedTutors();
-    if (selectedTutors.length === 0) {
-        alert('Please select tutors to generate payslips.');
-        return;
-    }
-    
-    const month = document.getElementById('month').value;
-    const year = document.getElementById('year').value;
-    window.open(`/finance/payslips/bulk?tutors=${selectedTutors.join(',')}&month=${month}&year=${year}`, '_blank');
-}
-
-function bulkSendEmails() {
-    const selectedTutors = getSelectedTutors();
-    if (selectedTutors.length === 0) {
-        alert('Please select tutors to send emails.');
-        return;
-    }
-    
-    if (confirm(`Send payslip emails to ${selectedTutors.length} selected tutors?`)) {
-        fetch('/finance/payroll/bulk-email', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ tutor_ids: selectedTutors })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Emails sent successfully!');
-            } else {
-                alert('Error sending emails: ' + data.message);
-            }
-        });
-    }
-}
-
-function sendPayslips() {
-    if (confirm('Send payslips to all tutors with approved payments?')) {
-        fetch('/finance/payroll/send-all-payslips', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
+                alert('Error: ' + data.message);
             }
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Payslips sent successfully!');
-            } else {
-                alert('Error sending payslips: ' + data.message);
-            }
+        .catch(error => {
+            alert('Error processing request');
         });
     }
 }
 
-function reviewPenalties() {
-    const month = document.getElementById('month').value;
-    const year = document.getElementById('year').value;
-    window.location.href = `/finance/penalties/review?month=${month}&year=${year}`;
+function viewDetails(arrivalId) {
+    // Open modal or navigate to details page
+    window.open(`/finance/late-arrivals/${arrivalId}`, '_blank');
 }
 
-function processBankTransfers() {
-    alert('Bank transfer processing coming soon!');
+function exportReport() {
+    // Implementation for exporting report
+    alert('Export functionality will be implemented');
 }
-
-function markManualPayments() {
-    const selectedTutors = getSelectedTutors();
-    if (selectedTutors.length === 0) {
-        alert('Please select tutors to mark as paid.');
-        return;
-    }
-    
-    if (confirm(`Mark ${selectedTutors.length} selected payments as manually processed?`)) {
-        fetch('/finance/payroll/mark-paid', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ tutor_ids: selectedTutors })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Payments marked as processed!');
-                location.reload();
-            } else {
-                alert('Error marking payments: ' + data.message);
-            }
-        });
-    }
-}
-
-function exportForAccounting() {
-    const month = document.getElementById('month').value;
-    const year = document.getElementById('year').value;
-    window.location.href = `/finance/payroll/export-accounting?month=${month}&year=${year}`;
-}
-
-// Auto-refresh every 30 seconds
-setInterval(() => {
-    // Only refresh if no modal is open
-    if (!document.querySelector('.modal.show')) {
-        location.reload();
-    }
-}, 30000);
 </script>
 {% endblock %}

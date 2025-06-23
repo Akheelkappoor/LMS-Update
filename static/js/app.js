@@ -882,3 +882,202 @@ window.LMS = {
     printReport,
     uploadFile
 };
+
+// static/js/app.js
+
+// Initialize all functions when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initSidebar();
+    initAlerts();
+    initAnimations();
+    initTooltips();
+});
+
+// Initialize Sidebar
+function initSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    // Toggle sidebar on mobile
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('active');
+            document.body.classList.toggle('sidebar-open');
+        });
+    }
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(e) {
+        if (window.innerWidth <= 768) {
+            if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                sidebar.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
+            }
+        }
+    });
+    
+    // Active link highlighting
+    const currentPath = window.location.pathname;
+    navLinks.forEach(link => {
+        if (link.getAttribute('href') === currentPath) {
+            link.classList.add('active');
+            link.closest('.nav-item').classList.add('active');
+        }
+    });
+}
+
+// Initialize Alerts
+function initAlerts() {
+    const alerts = document.querySelectorAll('.alert');
+    
+    alerts.forEach(alert => {
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+            fadeOut(alert);
+        }, 5000);
+        
+        // Close button functionality
+        const closeBtn = alert.querySelector('.alert-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                fadeOut(alert);
+            });
+        }
+    });
+}
+
+// Initialize Animations
+function initAnimations() {
+    // Fade in animation for elements with .fade-in class
+    const fadeElements = document.querySelectorAll('.fade-in');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    });
+    
+    fadeElements.forEach(element => {
+        observer.observe(element);
+    });
+}
+
+// Initialize Tooltips
+function initTooltips() {
+    const tooltipElements = document.querySelectorAll('[data-tooltip]');
+    
+    tooltipElements.forEach(element => {
+        element.addEventListener('mouseenter', function() {
+            const tooltipText = this.getAttribute('data-tooltip');
+            const tooltip = createTooltip(tooltipText);
+            
+            positionTooltip(tooltip, this);
+            document.body.appendChild(tooltip);
+        });
+        
+        element.addEventListener('mouseleave', function() {
+            const tooltip = document.querySelector('.tooltip-popup');
+            if (tooltip) {
+                tooltip.remove();
+            }
+        });
+    });
+}
+
+// Helper Functions
+function fadeOut(element) {
+    element.style.opacity = '0';
+    element.style.transform = 'translateY(-10px)';
+    
+    setTimeout(() => {
+        element.remove();
+    }, 300);
+}
+
+function createTooltip(text) {
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip-popup';
+    tooltip.textContent = text;
+    tooltip.style.cssText = `
+        position: absolute;
+        background: #333;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        z-index: 9999;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    `;
+    
+    setTimeout(() => {
+        tooltip.style.opacity = '1';
+    }, 10);
+    
+    return tooltip;
+}
+
+function positionTooltip(tooltip, element) {
+    const rect = element.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    tooltip.style.top = (rect.top - tooltipRect.height - 10) + 'px';
+    tooltip.style.left = (rect.left + rect.width / 2 - tooltipRect.width / 2) + 'px';
+}
+
+// Form Validation
+function validateForm(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return false;
+    
+    const inputs = form.querySelectorAll('[required]');
+    let isValid = true;
+    
+    inputs.forEach(input => {
+        if (!input.value.trim()) {
+            input.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            input.classList.remove('is-invalid');
+        }
+    });
+    
+    return isValid;
+}
+
+// AJAX Helper
+function sendRequest(url, method = 'GET', data = null) {
+    const options = {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        }
+    };
+    
+    if (data && method !== 'GET') {
+        options.body = JSON.stringify(data);
+    }
+    
+    return fetch(url, options)
+        .then(response => response.json())
+        .catch(error => {
+            console.error('Request failed:', error);
+            throw error;
+        });
+}
+
+// Export functions for global use
+window.appFunctions = {
+    validateForm,
+    sendRequest,
+    fadeOut,
+    initSidebar,
+    initAlerts,
+    initAnimations,
+    initTooltips
+};

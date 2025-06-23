@@ -72,3 +72,18 @@ class StudentAttendance(db.Model):
     
     # Relationships
     marker = db.relationship('User', foreign_keys=[marked_by], backref='attendance_records')
+
+custom_fields = db.Column(db.Text)  # JSON for additional class-specific data
+
+def get_custom_fields(self):
+    """Get custom fields from JSON"""
+    import json
+    try:
+        return json.loads(self.custom_fields) if self.custom_fields else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+def set_custom_fields(self, custom_fields):
+    """Set custom fields as JSON"""
+    import json
+    self.custom_fields = json.dumps(custom_fields) if custom_fields else None

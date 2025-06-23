@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Form Preview - {{ form.name }} - LMS{% endblock %}
+
+{% block content %}
+<div class="preview-container">
+    <div class="preview-header">
+        <div class="header-content">
+            <h1 class="preview-title">Form Preview</h1>
+            <div class="header-actions">
+                <a href="{{ url_for('forms') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Forms
+                </a>
+                <a href="{{ url_for('edit_form', id=form.id) }}" class="btn btn-primary">
+                    <i class="fas fa-edit"></i>
+                    Edit Form
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="preview-content">
+        <div class="form-preview-card">
+            <div class="form-header">
+                <h2 class="form-title">{{ form.name }}</h2>
+                {% if form.description %}
+                <p class="form-description">{{ form.description }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="form-body">
+                {% if form.get_fields() %}
+                    {% for field in form.get_fields() %}
+                    <div class="form-field">
+                        <label class="field-label">
+                            {{ field.label }}
+                            {% if field.required %}
+                            <span class="required">*</span>
+                            {% endif %}
+                        </label>
+                        
+                        {% if field.type == 'text' %}
+                        <input type="text" class="form-control" placeholder="{{ field.placeholder or '' }}" disabled>
+                        
+                        {% elif field.type == 'email' %}
+                        <input type="email" class="form-control" placeholder="{{ field.placeholder or 'Enter email address' }}" disabled>
+                        
+                        {% elif field.type == 'phone' %}
+                        <input type="tel" class="form-control" placeholder="{{ field.placeholder or 'Enter phone number' }}" disabled>
+                        
+                        {% elif field.type == 'textarea' %}
+                        <textarea class="form-control" rows="3" placeholder="{{ field.placeholder or '' }}" disabled></textarea>
+                        
+                        {% elif field.type == 'select' %}
+                        <select class="form-control" disabled>
+                            <option>Select an option</option>
+                            {% if field.options %}
+                                {% for option in field.options %}
+                                <option>{{ option }}</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                        
+                        {% elif field.type == 'radio' %}
+                        <div class="radio-group">
+                            {% if field.options %}
+                                {% for option in field.options %}
+                                <div class="radio-option">
+                                    <input type="radio" name="{{ field.name }}" value="{{ option }}" disabled>
+                                    <label>{{ option }}</label>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
+                        {% elif field.type == 'checkbox' %}
+                        <div class="checkbox-group">
+                            {% if field.options %}
+                                {% for option in field.options %}
+                                <div class="checkbox-option">
+                                    <input type="checkbox" value="{{ option }}" disabled>
+                                    <label>{{ option }}</label>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
+                        {% elif field.type == 'date' %}
+                        <input type="date" class="form-control" disabled>
+                        
+                        {% elif field.type == 'number' %}
+                        <input type="number" class="form-control" placeholder="{{ field.placeholder or 'Enter number' }}" disabled>
+                        
+                        {% elif field.type == 'file' %}
+                        <div class="file-upload-preview">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span>File upload field</span>
+                        </div>
+                        
+                        {% elif field.type == 'toggle' %}
+                        <div class="toggle-preview">
+                            <input type="checkbox" class="toggle-input" disabled>
+                            <label class="toggle-label">Yes/No</label>
+                        </div>
+                        
+                        {% else %}
+                        <input type="text" class="form-control" placeholder="Unknown field type" disabled>
+                        {% endif %}
+                        
+                        {% if field.help_text %}
+                        <small class="field-help">{{ field.help_text }}</small>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="empty-form">
+                    <i class="fas fa-file-alt"></i>
+                    <p>This form has no fields yet.</p>
+                    <a href="{{ url_for('edit_form', id=form.id) }}" class="btn btn-primary">
+                        Add Fields
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if form.get_fields() %}
+            <div class="form-footer">
+                <button class="btn btn-primary" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                    Submit (Preview Mode)
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.preview-container {
+    padding: 0 32px 32px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.preview-header {
+    background: white;
+    border-bottom: 1px solid #eee;
+    padding: 24px 0;
+    margin-bottom: 30px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.preview-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.preview-content {
+    display: flex;
+    justify-content: center;
+}
+
+.form-preview-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 40px;
+    width: 100%;
+    max-width: 600px;
+}
+
+.form-header {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.form-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.form-description {
+    color: #666;
+    font-size: 16px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.form-field {
+    margin-bottom: 25px;
+}
+
+.field-label {
+    display: block;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.required {
+    color: #dc3545;
+    margin-left: 2px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #f8f9fa;
+}
+
+.radio-group, .checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.radio-option, .checkbox-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.field-help {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.file-upload-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    background: #f8f9fa;
+    color: #666;
+}
+
+.file-upload-preview i {
+    font-size: 32px;
+    margin-bottom: 10px;
+    color: #F1A150;
+}
+
+.toggle-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.toggle-input {
+    transform: scale(1.2);
+}
+
+.empty-form {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.empty-form i {
+    font-size: 48px;
+    color: #ddd;
+    margin-bottom: 20px;
+}
+
+.empty-form p {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.form-footer {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .preview-container {
+        padding: 0 20px 20px;
+    }
+    
+    .form-preview-card {
+        padding: 30px 20px;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
