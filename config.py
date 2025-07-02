@@ -1,53 +1,41 @@
 import os
-from datetime import timedelta
 from dotenv import load_dotenv
-load_dotenv()  # Load environment variables from .env file
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, '.env'))
 
 class Config:
-    """Base configuration class"""
-    # Secret key for session management and CSRF protection
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-this-in-production'
-    
-    # Database configuration
-    basedir = os.path.abspath(os.path.dirname(__file__))
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'sqlite:///' + os.path.join(basedir, 'instance', 'lms.db')
+        'sqlite:///' + os.path.join(basedir, 'app.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    # Session configuration
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
-    SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
+    # File Upload Settings - INCREASED LIMITS
+    UPLOAD_FOLDER = os.path.join(basedir, 'app', 'static', 'uploads')
+    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 5 * 1024 * 1024 * 1024))  # 5GB max file size
+    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'mp4', 'avi', 'mov'}
     
-    # File upload configuration
-    UPLOAD_FOLDER = os.path.join(basedir, 'static', 'uploads')
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx'}
-    
-    # Email configuration (you'll need to update these)
-    MAIL_SERVER = os.environ.get('MAIL_SERVER')
-    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
+    # Email Settings
+    MAIL_SERVER = os.environ.get('MAIL_SERVER') or 'smtp.gmail.com'
+    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 587)
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
+    ADMINS = ['care@i2global.co.in']
     
-    # Application configuration
-    POSTS_PER_PAGE = 20
-    LANGUAGES = ['en', 'hi']  # English and Hindi support
+    # Pagination
+    POSTS_PER_PAGE = 25
     
-    @staticmethod
-    def init_app(app):
-        """Initialize application with configuration"""
-        # Create necessary directories
-        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
-        os.makedirs(os.path.join(Config.basedir, 'instance'), exist_ok=True)
-        os.makedirs(os.path.join(Config.basedir, 'data'), exist_ok=True)
-        
-        # Log email configuration
-        app.logger.debug(f"MAIL_SERVER: {app.config['MAIL_SERVER']}")
-        app.logger.debug(f"MAIL_PORT: {app.config['MAIL_PORT']}")
-        app.logger.debug(f"MAIL_USE_TLS: {app.config['MAIL_USE_TLS']}")
-        app.logger.debug(f"MAIL_USERNAME: {app.config['MAIL_USERNAME']}")
-        app.logger.debug(f"MAIL_DEFAULT_SENDER: {app.config['MAIL_DEFAULT_SENDER']}")
+    # Session Settings
+    PERMANENT_SESSION_LIFETIME = 3600  # 1 hour
+    
+    # Default Admin Settings
+    DEFAULT_ADMIN_EMAIL = 'care@i2global.co.in'
+    DEFAULT_ADMIN_PASSWORD = 'i2global123'
+    
+    # Application Settings
+    APP_NAME = 'I2Global LMS'
+    COMPANY_NAME = 'I2Global Virtual Learning'
+    COMPANY_ADDRESS = '48, 4th Block, Koramangala, Bengaluru, Karnataka 560034'
+    COMPANY_PHONE = '+91 9600127000'
+    COMPANY_EMAIL = 'care@i2global.co.in'
